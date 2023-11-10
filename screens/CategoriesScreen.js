@@ -16,7 +16,7 @@ import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-na
 import CategoryItem from '../components/CategoryItem';
 import * as ImagePicker from 'expo-image-picker';
 import { addImageToCategory } from '../FlashcardSlice';
-import { init } from '../db';
+
 import { selectDarkMode } from '../darkModeSlice';
 
 const CategoriesScreen = ({ navigation }) => {
@@ -30,13 +30,7 @@ const CategoriesScreen = ({ navigation }) => {
   const categoryBackgroundColor = useSharedValue('rgba(0,0,0,0.7)');
   const categoryTextColor = useSharedValue('white');
 
-  useEffect(() => {
-    init().then(() => {
-      console.log("Initialized database");
-    }).catch(err => {
-      console.log("Database initialization failed", err);
-    });
-  }, []);
+
 
   useFocusEffect(
     React.useCallback(() => {

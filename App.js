@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {View} from 'react-native';
+import {View,Animated} from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -23,9 +23,12 @@ import { Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-ic
 import { useFonts } from 'expo-font';
 import fonts from './fonts/fonts';
 import { darkModeSlice, selectDarkMode } from './darkModeSlice';
+import { initDB } from './db';
+import { ActionSheetProvider } from '@expo/react-native-action-sheet';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
+
 
 const store = configureStore({
   reducer: {
@@ -114,6 +117,11 @@ const TabNavigator = ({ handleLogout }) => {
 };
 
 const App = () => {
+
+  useEffect(() => {
+    initDB().catch((err) => console.log(err));
+  }, []);
+  
   const [loaded] = useFonts(fonts);
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -152,6 +160,7 @@ const App = () => {
 
   return (
     <Provider store={store}>
+      <ActionSheetProvider>
       <NavigationContainer>
         <Stack.Navigator>
           {isAuthenticated ? (
@@ -179,6 +188,7 @@ const App = () => {
           )}
         </Stack.Navigator>
       </NavigationContainer>
+      </ActionSheetProvider>
     </Provider>
   );
 };

@@ -1,13 +1,15 @@
+// database.js
+
 import * as SQLite from 'expo-sqlite';
-import * as FileSystem from 'expo-file-system';
 
-const db = SQLite.openDatabase('flashcards.db');
+const db = SQLite.openDatabase('categories.db');
 
-export const init = () => {
+// Inicializar la base de datos
+const initDB = async () => {
     return new Promise((resolve, reject) => {
-        db.transaction((tx) => {
+        db.transaction(tx => {
             tx.executeSql(
-                'CREATE TABLE IF NOT EXISTS categories (id INTEGER PRIMARY KEY NOT NULL, name TEXT NOT NULL, imageUri TEXT);',
+                'CREATE TABLE IF NOT EXISTS category_images (id INTEGER PRIMARY KEY NOT NULL, categoryId INTEGER UNIQUE, uri TEXT);',
                 [],
                 () => {
                     resolve();
@@ -20,38 +22,15 @@ export const init = () => {
     });
 };
 
-export const insertImage = (id, uri) => {
-    const newUri = FileSystem.documentDirectory + uri.split('/').pop();
-
-    return FileSystem.copyAsync({
-        from: uri,
-        to: newUri,
-    }).then(() => {
-        return new Promise((resolve, reject) => {
-            db.transaction((tx) => {
-                tx.executeSql(
-                    'UPDATE categories SET imageUri = ? WHERE id = ?',
-                    [newUri, id],
-                    (_, result) => {
-                        resolve(result);
-                    },
-                    (_, err) => {
-                        reject(err);
-                    }
-                );
-            });
-        });
-    });
-};
-
-export const fetchCategories = () => {
+// Insertar una imagen
+const insertImage = async (categoryId, uri) => {
     return new Promise((resolve, reject) => {
-        db.transaction((tx) => {
+        db.transaction(tx => {
             tx.executeSql(
-                'SELECT * FROM categories',
-                [],
+                'INSERT INTO category_images (categoryId, uri) VALUES (?, ?);',
+                [categoryId, uri],
                 (_, result) => {
-                    resolve(result.rows._array);
+                    resolve(result);
                 },
                 (_, err) => {
                     reject(err);
@@ -60,3 +39,62 @@ export const fetchCategories = () => {
         });
     });
 };
+
+// Obtener la imagen de una categoría
+const fetchImage = async (categoryId) => {
+    return new Promise((resolve, reject) => {
+        db.transaction(tx => {
+            tx.executeSql(
+                'SELECT * FROM category_images WHERE categoryId = ?;',
+                [categoryId],
+                (_, result) => {
+                    if (result.rows.length > 0) {
+                        resolve(result.rows._array[0]);
+                    } else {
+                        resolve(null);
+                    }
+                },
+                (_, err) => {
+                    reject(err);
+                }
+            );
+        });
+    });
+};
+
+// Eliminar la imagen de una categoría
+const deleteImage = async (categoryId) => {
+    return new Promise((resolve, reject) => {
+        db.transaction(tx => {
+            tx.executeSql(
+                'DELETE FROM category_images WHERE categoryId = ?;',
+                [categoryId],
+                (_, result) => {
+                    resolve(result);
+                },
+                (_, err) => {
+                    reject(err);
+                }
+            );
+        });
+    });
+};
+
+const upsertImage = async (categoryId, uri) => {
+    return new Promise((resolve, reject) => {
+        db.transaction(tx => {
+            tx.executeSql(
+                'INSERT OR REPLACE INTO category_images (categoryId, uri) VALUES (?, ?);',
+                [categoryId, uri],
+                (_, result) => {
+                    resolve(result);
+                },
+                (_, err) => {
+                    reject(err);
+                }
+            );
+        });
+    });
+};
+
+export { initDB, insertImage, fetchImage, deleteImage, upsertImage };

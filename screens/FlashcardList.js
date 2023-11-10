@@ -72,8 +72,10 @@ const FlashcardList = ({ navigation, route }) => {
       </TouchableOpacity>
       <TouchableOpacity
         style={[styles.button, { backgroundColor: darkModeEnabled ? '#434753' : 'white', borderWidth: 2, borderColor: darkModeEnabled ? 'white' : 'black' }]} 
+        onPress={handleAddFlashcardPress}
       >
         <Text style={[styles.buttonText, { color: darkModeEnabled ? '#D3D3D3' : 'black' }]}>Agregar Flashcard</Text> 
+        
       </TouchableOpacity>
     </View>
   );
