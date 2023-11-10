@@ -3,10 +3,12 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchFlashcardsByCategory, selectFlashcardsByCategory, deleteFlashcard } from '../FlashcardSlice';
 import axios from 'axios';
+import { selectDarkMode } from '../darkModeSlice';
 
 const FlashcardList = ({ navigation, route }) => {
   const { category, colorPair } = route.params;
   const flashcards = useSelector((state) => selectFlashcardsByCategory(state, category));
+  const darkModeEnabled = useSelector(selectDarkMode); // Usa el selector para obtener el estado del modo oscuro
   const dispatch = useDispatch();
 
   if (!colorPair) {
@@ -34,15 +36,15 @@ const FlashcardList = ({ navigation, route }) => {
 
   const renderItem = ({ item }) => {
     return (
-      <View style={[styles.flashcard, { backgroundColor: colorPair.text }]}>
-        <TouchableOpacity 
-          style={styles.closeButton} 
+      <View style={[styles.flashcard, { backgroundColor: darkModeEnabled ? '#121212' : colorPair.text, borderColor: darkModeEnabled ? 'white' : 'black', borderWidth: darkModeEnabled ? 1 : 0 }]}>
+        <TouchableOpacity
+          style={styles.closeButton}
           onPress={() => handleDeleteFlashcard(item.id)}
         >
-          <Text style={styles.closeButtonText}>X</Text>
+          <Text style={[styles.closeButtonText, { color: darkModeEnabled ? '#121212' : 'white' }]}>X</Text>
         </TouchableOpacity>
-        <Text style={[styles.english, { color: colorPair.background }]}>{item.english}</Text>
-        <Text style={[styles.spanish, { color: colorPair.background }]}>{item.spanish}</Text>
+        <Text style={[styles.english, { color: darkModeEnabled ? 'white' : colorPair.background }]}>{item.english}</Text>
+        <Text style={[styles.spanish, { color: darkModeEnabled ? 'white' : colorPair.background }]}>{item.spanish}</Text>
       </View>
     );
   };
@@ -54,8 +56,8 @@ const FlashcardList = ({ navigation, route }) => {
   }, [category]);
 
   return (
-    <View style={[styles.container, { backgroundColor: colorPair.background }]}>
-      <Text style={[styles.title, { color: colorPair.text }]}>Flashcards de {category}</Text>
+    <View style={[styles.container, { backgroundColor: darkModeEnabled ? '#121212' : colorPair.background }]}> 
+      <Text style={[styles.title, { color: darkModeEnabled ? '#D3D3D3' : colorPair.text }]}>{category}</Text>
       <FlatList
         data={flashcards}
         renderItem={renderItem}
@@ -63,16 +65,15 @@ const FlashcardList = ({ navigation, route }) => {
         extraData={flashcards}
       />
       <TouchableOpacity
-        style={[styles.button, { backgroundColor: 'gray', borderWidth: 2, borderColor: 'white' }]}
+        style={[styles.button, { backgroundColor: darkModeEnabled ? '#434753' : 'gray', borderWidth: 2, borderColor: darkModeEnabled ? 'white' : 'black' }]} // Ajustes para el botón en modo oscuro
         onPress={handleMemorizePress}
       >
-        <Text style={[styles.buttonText, { color: 'white' }]}>Memorizar</Text>
+        <Text style={[styles.buttonText, { color: darkModeEnabled ? '#D3D3D3' : 'white' }]}>Memorizar</Text> 
       </TouchableOpacity>
       <TouchableOpacity
-        style={[styles.button, { backgroundColor: 'white', borderWidth: 2, borderColor: 'black' }]}
-        onPress={handleAddFlashcardPress}
+        style={[styles.button, { backgroundColor: darkModeEnabled ? '#434753' : 'white', borderWidth: 2, borderColor: darkModeEnabled ? 'white' : 'black' }]} 
       >
-        <Text style={[styles.buttonText, { color: 'black' }]}>Agregar Flashcard</Text>
+        <Text style={[styles.buttonText, { color: darkModeEnabled ? '#D3D3D3' : 'black' }]}>Agregar Flashcard</Text> 
       </TouchableOpacity>
     </View>
   );

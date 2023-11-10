@@ -1,26 +1,54 @@
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { useSelector } from 'react-redux'; // Importa useSelector
+import { selectDarkMode } from '../darkModeSlice';// Asegúrate de que la ruta de importación es correcta
 
 const ExercisesScreen = ({ navigation }) => {
+    const darkModeEnabled = useSelector(selectDarkMode); // Usa useSelector para obtener el estado del modo oscuro
+
+    const containerStyle = [
+        styles.container,
+        { backgroundColor: darkModeEnabled ? '#121212' : '#f4f1de' },
+    ];
+
+    const buttonStyle = [
+        styles.button,
+        {
+            backgroundColor: darkModeEnabled ? '#3d405b' : '#e07a5f',
+            borderColor: darkModeEnabled ? '#f4f1de' : '#3d405b',
+        },
+    ];
+
+    const textStyle = [
+        styles.buttonText,
+        { color: darkModeEnabled ? '#f4f1de' : '#FFF3E0' },
+    ];
+
+    const subtextStyle = [
+        styles.buttonSubtext,
+        { color: darkModeEnabled ? '#f4f1de' : '#43291f' },
+    ];
+
     return (
-        <View style={styles.container}>
+        <View style={containerStyle}>
             <TouchableOpacity
-                style={styles.button}
+                style={buttonStyle}
                 onPress={() => navigation.navigate('SelectCategoryScreen')}
             >
-                <Text style={styles.buttonText}>Comprobar Flashcards</Text>
-                <Text style={styles.buttonSubtext}>Practica y mejora tu vocabulario</Text>
+                <Text style={textStyle}>Comprobar Flashcards</Text>
+                <Text style={subtextStyle}>Practica y mejora tu vocabulario</Text>
             </TouchableOpacity>
             <TouchableOpacity
-                style={styles.button}
+                style={buttonStyle}
                 onPress={() => {/* Implementar */}}
             >
-                <Text style={styles.buttonText}>Practicar Gramática y Vocabulario</Text>
-                <Text style={styles.buttonSubtext}>Mejora tus habilidades lingüísticas</Text>
+                <Text style={textStyle}>Practicar Gramática y Vocabulario</Text>
+                <Text style={subtextStyle}>Mejora tus habilidades lingüísticas</Text>
             </TouchableOpacity>
         </View>
     );
 };
+
 
 const styles = StyleSheet.create({
     container: {

@@ -1,55 +1,75 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, TouchableOpacity, Text, StyleSheet, SafeAreaView } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
-import { selectCategories } from '../FlashcardSlice';
+import { selectCategories, fetchCategories } from '../FlashcardSlice';
 import { Picker } from '@react-native-picker/picker';
-import { fetchCategories } from '../FlashcardSlice';
-
-const colors = {
-  pair1: { background: '#f4f1de', text: '#43291f' },
-  pair2: { background: '#e07a5f', text: '#FFF3E0' },
-  pair3: { background: '#3d405b', text: '#E0FFF4' },
-  pair4: { background: '#81b29a', text: '#003112' },
-  pair5: { background: '#f2cc8f', text: '#143100' },
-};
+import { selectDarkMode } from '../darkModeSlice';
 
 export default function SelectCategoryScreen({ navigation }) {
   const dispatch = useDispatch();
   const categories = useSelector(selectCategories);
+  const darkModeEnabled = useSelector(selectDarkMode);
 
   useEffect(() => {
     dispatch(fetchCategories());
   }, [dispatch]);
 
-  const [selectedCategory, setSelectedCategory] = React.useState(
-    categories[0]?.name || null
-  );
+  const [selectedCategory, setSelectedCategory] = useState(categories[0]?.name || null);
 
-  const selectedColor = colors.pair2; // Cambia el par de colores según tu preferencia
+  const darkModeColors = {
+    background: '#121212',
+    text: '#f4f1de',
+    button: '#3d405b',
+    buttonText: '#FFF3E0',
+  };
+
+  const containerStyle = {
+    ...styles.container,
+    backgroundColor: darkModeEnabled ? darkModeColors.background : '#f4f1de',
+  };
+
+  const titleStyle = {
+    ...styles.title,
+    color: darkModeEnabled ? darkModeColors.text : '#43291f',
+  };
+
+  const buttonStyle = {
+    ...styles.button,
+    backgroundColor: darkModeEnabled ? darkModeColors.button : '#e07a5f',
+  };
+
+  const textStyle = {
+    ...styles.buttonText,
+    color: darkModeEnabled ? darkModeColors.buttonText : '#FFF3E0',
+  };
+
+  const pickerStyle = {
+    ...styles.picker,
+    
+    backgroundColor: darkModeEnabled ? darkModeColors.button : '#e07a5f',
+    color: darkModeEnabled ? darkModeColors.text : '#43291f',
+  };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: selectedColor.background }]}>
-      <Text style={[styles.title, { color: selectedColor.text }]}>¡Elige una categoría para practicar flashcards!</Text>
-
+    <SafeAreaView style={containerStyle}>
+      <Text style={titleStyle}>¡Elige una categoría para practicar flashcards!</Text>
       <Picker
-        style={styles.picker}
+        style={pickerStyle}
         selectedValue={selectedCategory}
-        onValueChange={(itemValue) => {
-          setSelectedCategory(itemValue);
-        }}
+        onValueChange={(itemValue) => setSelectedCategory(itemValue)}
+        
       >
-        {categories &&
-          categories.map((category) => (
-            <Picker.Item
-              key={category.id.toString()}
-              label={category.name}
-              value={category.name}
-            />
-          ))}
+        {categories.map((category) => (
+          <Picker.Item
+            style={pickerStyle}
+            key={category.id.toString()}
+            label={category.name}
+            value={category.name}
+          />
+        ))}
       </Picker>
-
       <TouchableOpacity
-        style={[styles.button, { backgroundColor: selectedColor.text }]}
+        style={buttonStyle}
         onPress={() => {
           if (selectedCategory) {
             navigation.navigate('CheckFlashcardScreen', {
@@ -60,7 +80,7 @@ export default function SelectCategoryScreen({ navigation }) {
           }
         }}
       >
-        <Text style={[styles.buttonText, { color: selectedColor.background }]}>Comenzar</Text>
+        <Text style={textStyle}>Comenzar</Text>
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -71,32 +91,22 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 20,
   },
   title: {
-    fontSize: 28,
+    fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
+    padding: 20,
   },
   picker: {
-    width: '100%',
+    width: '80%',
     height: 50,
-    borderWidth: 2,
-    borderColor: 'white',
-    marginBottom: 20,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)', // Fondo semitransparente
-    color: 'white', // Color de texto
   },
   button: {
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    elevation: 2, // Sombra para un efecto elevado
+    marginTop: 20,
+    padding: 10,
+    borderRadius: 5,
   },
   buttonText: {
-    fontSize: 20,
-    textAlign: 'center',
+    fontSize: 18,
   },
 });

@@ -6,6 +6,7 @@ import {
   TouchableWithoutFeedback,
   Text,
   FlatList,
+  Alert,
 } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { deleteCategory, fetchCategories } from '../FlashcardSlice';
@@ -16,28 +17,25 @@ import CategoryItem from '../components/CategoryItem';
 import * as ImagePicker from 'expo-image-picker';
 import { addImageToCategory } from '../FlashcardSlice';
 import { init } from '../db';
+import { selectDarkMode } from '../darkModeSlice';
 
 const CategoriesScreen = ({ navigation }) => {
+  const darkModeEnabled = useSelector(selectDarkMode);
   const categories = useSelector((state) => state.flashcards.categories);
   const dispatch = useDispatch();
   const [isButtonPressed, setIsButtonPressed] = useState(false);
 
-  // Animación de la categoría seleccionada
   const translateY = useSharedValue(1000);
-  const [categoryToDisplay, setCategoryToDisplay] = useState('')
+  const [categoryToDisplay, setCategoryToDisplay] = useState('');
   const categoryBackgroundColor = useSharedValue('rgba(0,0,0,0.7)');
   const categoryTextColor = useSharedValue('white');
 
-
-
   useEffect(() => {
-    init()
-      .then(() => {
-        console.log("Initialized database");
-      })
-      .catch(err => {
-        console.log("Database initialization failed", err);
-      });
+    init().then(() => {
+      console.log("Initialized database");
+    }).catch(err => {
+      console.log("Database initialization failed", err);
+    });
   }, []);
 
   useFocusEffect(
@@ -47,13 +45,19 @@ const CategoriesScreen = ({ navigation }) => {
     }, [dispatch])
   );
 
-  const handleDeleteCategory = async (categoryId) => {
-    dispatch(deleteCategory(categoryId));
+  const handleDeleteCategory = (categoryId) => {
+    Alert.alert(
+      "Eliminar Categoría",
+      "¿Estás seguro de que quieres eliminar esta categoría?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        { text: "Eliminar", onPress: () => dispatch(deleteCategory(categoryId)) }
+      ]
+    );
   };
 
   const navigateToFlashcardList = (category, colorPair) => {
     animateCategoryDisplay(category.name, colorPair);
-
     setTimeout(() => {
       navigation.navigate('FlashcardList', { category: category.name, colorPair });
     }, 1200);
@@ -79,31 +83,29 @@ const CategoriesScreen = ({ navigation }) => {
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.2,
       shadowRadius: 8,
-      elevation: 5, 
+      elevation: 5,
       bottom: 30,
-      borderColor: 'black',
+      borderColor: darkModeEnabled ? 'white' : 'black',
       borderWidth: 2,
       justifyContent: 'center',
       alignItems: 'center',
-      backgroundColor: categoryBackgroundColor.value,
+      backgroundColor: darkModeEnabled ? '#434753' : categoryBackgroundColor.value,
     };
   });
 
   const categoryTextStyle = useAnimatedStyle(() => {
     return {
-      color: categoryTextColor.value,
+      color: darkModeEnabled ? '#D3D3D3' : categoryTextColor.value,
       fontSize: 60,
+      fontFamily: 'Pagebash',
     };
   });
 
   const animateCategoryDisplay = (categoryName, colorPair) => {
-    // Cambio 2: Actualiza el valor de categoryToDisplay antes de iniciar la animación
     setCategoryToDisplay(categoryName);
-
     translateY.value = withSpring(0);
-    categoryBackgroundColor.value = colorPair.background;
-    categoryTextColor.value = colorPair.text;
-
+    categoryBackgroundColor.value = darkModeEnabled ? '#434753' : colorPair.background;
+    categoryTextColor.value = darkModeEnabled ? '#D3D3D3' : colorPair.text;
     setTimeout(() => {
       translateY.value = withSpring(1000);
     }, 1200);
@@ -157,8 +159,10 @@ const CategoriesScreen = ({ navigation }) => {
 
   return (
     <TouchableWithoutFeedback onPress={handleScreenPress}>
-      <View style={styles.container}>
-        <Text style={styles.title}>Flashcards</Text>
+      <View style={[styles.container, { backgroundColor: darkModeEnabled ? '#121212' : '#F5F5F5' }]}>
+       
+        <Text style={[styles.title, { color: darkModeEnabled ? '#D3D3D3' : 'black' }]}>Categorías</Text>
+        
         <FlatList
           data={categories}
           renderItem={({ item }) => (
@@ -167,10 +171,10 @@ const CategoriesScreen = ({ navigation }) => {
               onPress={navigateToFlashcardList}
               onDelete={handleDeleteCategory}
               onImagePick={handleImagePick}
-              colorPair={item.colorPair} // Suponiendo que cada categoría tiene una propiedad colorPair
+              colorPair={item.colorPair}
             />
           )}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.listContainer}
           numColumns={2}
         />
@@ -179,31 +183,43 @@ const CategoriesScreen = ({ navigation }) => {
             {isButtonPressed ? (
               <View style={styles.expandedButtonsContainer}>
                 <TouchableOpacity
-                  style={[styles.expandedButton]}
+                  style={[styles.expandedButton, {
+                    backgroundColor: darkModeEnabled ? '#121212' : '#fff',
+                    borderWidth: 2,
+                    borderColor: darkModeEnabled ? 'rgba(255, 255, 255, 0.5)' : 'white',
+                  }]}
                   onPress={navigateToAddCategory}
                 >
-                  <AntDesign name="plus" size={24} color="black" />
-                  <Text style={[styles.text]}  >Agregar Categoría</Text>
+                  <AntDesign name="plus" size={24} color={darkModeEnabled ? 'white' : 'black'} />
+                  <Text style={[styles.text, { color: darkModeEnabled ? '#D3D3D3' : 'black' }]}>Agregar Categoría</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.expandedButton]}
+                  style={[styles.expandedButton, {
+                    backgroundColor: darkModeEnabled ? '#121212' : '#fff',
+                    borderWidth: 2,
+                    borderColor: darkModeEnabled ? 'rgba(255, 255, 255, 0.5)' : 'white',
+                  }]}
                   onPress={navigateToAddGPT}
                 >
-                  <MaterialCommunityIcons name="robot" size={24} color="black" />
-                  <Text style={[styles.text]} >Agregar Categoría Con IA</Text>
+                  <MaterialCommunityIcons name="robot" size={24} color={darkModeEnabled ? 'white' : 'black'} />
+                  <Text style={[styles.text, { color: darkModeEnabled ? '#D3D3D3' : 'black' }]}>Agregar Categoría Con IA</Text>
                 </TouchableOpacity>
               </View>
             ) : (
               <TouchableWithoutFeedback onPress={handleButtonPress}>
-                <View style={styles.actionButton}>
-                  <AntDesign name="plus" size={24} color="black" />
+                <View style={[styles.actionButton, {
+                  backgroundColor: darkModeEnabled ? '#121212' : '#fff',
+                  borderWidth: 2,
+                  borderColor: darkModeEnabled ? 'rgba(255, 255, 255, 0.5)' : 'white',
+                }]}>
+                  <AntDesign name="plus" size={24} color={darkModeEnabled ? 'white' : 'black'} />
                 </View>
               </TouchableWithoutFeedback>
             )}
           </Animated.View>
         </View>
         <Animated.View style={categoryAnimatedStyle}>
-          <Animated.Text style={[{fontFamily: 'Pagebash' }, categoryTextStyle]}>
+          <Animated.Text style={[{ fontFamily: 'Pagebash' }, categoryTextStyle]}>
             {categoryToDisplay}
           </Animated.Text>
         </Animated.View>
@@ -214,7 +230,7 @@ const CategoriesScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: {
-    
+
     flex: 1,
     paddingTop: 80,
     backgroundColor: 'white',
@@ -246,7 +262,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   actionButton: {
-    
+
     width: 50,
     height: 50,
     borderRadius: 25,
@@ -264,7 +280,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   expandedButton: {
-    
+
     width: '100%',
     height: '40%',
     borderRadius: 25,

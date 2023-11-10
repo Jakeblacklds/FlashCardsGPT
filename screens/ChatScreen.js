@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -10,14 +9,17 @@ import {
   TouchableOpacity,
   Animated,
 } from 'react-native';
-import RadialGradient from 'react-native-radial-gradient';
+import { useSelector } from 'react-redux';
+import { selectDarkMode } from '../darkModeSlice';
 import { chatWithGPT } from '../api';
+import * as Animatable from 'react-native-animatable';
 
 const ChatScreen = () => {
+  const darkModeEnabled = useSelector(selectDarkMode);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [mode, setMode] = useState('grammar');
-  const animationValue = useRef(new Animated.Value(0)).current;
+
 
   useEffect(() => {
     if (mode === 'grammar') {
@@ -72,45 +74,65 @@ const ChatScreen = () => {
     backgroundColor: mode === 'grammar' ? '#e07a5f' : '#81b29a',
   };
 
+ 
   return (
-    <View style={[styles.container, containerStyle]}>
+    
+    <View style={[styles.container, { backgroundColor: darkModeEnabled ? '#121212' : '#F5F5F5' }]}>
       <View style={styles.switchContainer}>
-        <Text style={textStyle}>Gramática</Text>
+        <Text style={[styles.text, { color: darkModeEnabled ? '#D3D3D3' : 'black' }]}>Gramática</Text>
         <Switch
           value={mode === 'roleplay'}
           onValueChange={toggleMode}
           trackColor={{ false: 'purple', true: '#007BFF' }}
-          thumbColor={mode === 'grammar' ? 'white' : 'white'} // Cambia el color del interruptor
-          style={styles.switch}
+          thumbColor={darkModeEnabled ? 'white' : 'white'}
         />
-        <Text style={textStyle}>Roleplay</Text>
+        <Text style={[styles.text, { color: darkModeEnabled ? '#D3D3D3' : 'black' }]}>Roleplay</Text>
       </View>
       <ScrollView style={styles.chat}>
-        {messages.map((message, index) => (
-          <View
-            key={index}
-            style={[
-              styles.messageContainer,
-              { backgroundColor: message.sender === 'gpt' ? '#E5E5E5' : 'white' },
-            ]}
-          >
-            <Text style={[styles.messageText, textStyle]}>{message.text}</Text>
-          </View>
-        ))}
-      </ScrollView>
+  {messages.map((message, index) => (
+    <View
+      key={index}
+      style={[
+        styles.messageContainer,
+        { backgroundColor: darkModeEnabled ? '#434753' : (message.sender === 'gpt' ? '#E5E5E5' : 'white') },
+      ]}
+    >
+      {message.sender === 'gpt' ? (
+        <Animatable.Text
+          animation="fadeInLeft" // Puedes personalizar la animación según tus preferencias
+          style={[
+            styles.messageText,
+            { color: darkModeEnabled ? '#D3D3D3' : (mode === 'grammar' ? '#43291f' : 'black') },
+          ]}
+        >
+          {message.text}
+        </Animatable.Text>
+      ) : (
+        <Text
+          style={[
+            styles.messageText,
+            { color: darkModeEnabled ? '#D3D3D3' : (mode === 'grammar' ? '#43291f' : 'black') },
+          ]}
+        >
+          {message.text}
+        </Text>
+      )}
+    </View>
+  ))}
+</ScrollView>
       <View style={styles.inputContainer}>
         <TextInput
-          style={[styles.input, textStyle]}
+          style={[styles.input, { color: darkModeEnabled ? '#D3D3D3' : 'black', backgroundColor: darkModeEnabled ? '#434753' : 'white' }]}
           value={input}
           onChangeText={setInput}
           placeholder="Escribe un mensaje..."
-          placeholderTextColor={mode === 'grammar' ? 'white' : 'lightblue'}
+          placeholderTextColor={darkModeEnabled ? '#A9A9A9' : 'grey'}
         />
         <TouchableOpacity
-          style={[styles.sendButton, sendButtonStyle]}
+          style={[styles.sendButton, { backgroundColor: darkModeEnabled ? '#434753' : (mode === 'grammar' ? '#e07a5f' : '#81b29a') }]}
           onPress={handleSendMessage}
         >
-          <Text style={styles.sendButtonText}>Enviar</Text>
+          <Text style={[styles.sendButtonText, { color: darkModeEnabled ? '#D3D3D3' : 'white' }]}>Enviar</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -120,15 +142,17 @@ const ChatScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: '#f2cc8f',
-    margin: 10,
-    marginTop: 70,
+    
+    padding: 10,
+    paddingTop: 70,
   },
   chat: {
     flex: 1,
     padding: 10,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderWidth: 3,
+    borderColor: '#f2cc8f',
   },
   user: {
     textAlign: 'right',
@@ -154,7 +178,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 10,
     backgroundColor: '#f2cc8f',
-    borderRadius: 10,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
   },
   input: {
     flex: 1,
