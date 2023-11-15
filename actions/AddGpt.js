@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
-import { View, TextInput, StyleSheet, TouchableOpacity, Text } from 'react-native';
+import { View, TextInput, StyleSheet, TouchableOpacity, Text,Image } from 'react-native';
 import { chatWithGPT } from '../api';
 import axios from 'axios';
 import Slider from '@react-native-community/slider';
+import robotflash from '../assets/robotflash.png';
+import { selectDarkMode } from '../darkModeSlice';
+import { useSelector } from 'react-redux';
+
 
 const AddGpt = ({ navigation }) => {
     const [category, setCategory] = useState('');
     const [numFlashcards, setNumFlashcards] = useState(0);
+    const darkModeEnabled = useSelector(selectDarkMode);
 
     const fetchFlashcardsFromGPT = async () => {
         const prompt = `
@@ -70,38 +75,53 @@ const AddGpt = ({ navigation }) => {
     };
 
     return (
-        <View style={styles.container}>
-                        <Text style={styles.additionalText}>
+        <View style={[styles.container, darkModeEnabled ? styles.containerDark : {}]}>
+            <Image 
+                source={robotflash} 
+                style={styles.robotFlashImage} 
+            />
+            <Text style={[styles.additionalText, darkModeEnabled ? styles.textDark : {}]}>
                 Tienes flojera de crear tus flashcards? Usa la IA!
             </Text>
             <TextInput
-                style={styles.input}
+                style={[styles.input, darkModeEnabled ? styles.inputDark : {}]}
                 placeholder="Escribe la Categoría"
+                placeholderTextColor={darkModeEnabled ? "#D3D3D3" : "#333"}
                 value={category}
                 onChangeText={(text) => setCategory(text)}
             />
             <View style={styles.sliderContainer}>
-                <Text style={styles.sliderText}>Número de Flashcards: {numFlashcards}</Text>
+                <Text style={[styles.sliderText, darkModeEnabled ? styles.textDark : {}]}>
+                    Número de Flashcards: {numFlashcards}
+                </Text>
                 <Slider
-                    style={styles.slider}
-                    minimumValue={1}
-                    maximumValue={20}
-                    step={1}
-                    value={numFlashcards}
-                    onValueChange={(value) => setNumFlashcards(value)}
-                    minimumTrackTintColor="#007BFF"
-                    maximumTrackTintColor="#ccc"
+                    // ... (resto de las propiedades del Slider)
                 />
             </View>
             <TouchableOpacity style={styles.button} onPress={handleAddCategoryAndFlashcards}>
                 <Text style={styles.buttonText}>Agregar Categoría y Flashcards</Text>
             </TouchableOpacity>
-
         </View>
     );
 };
 
 const styles = StyleSheet.create({
+    containerDark: {
+        backgroundColor: '#121212', // Tu color de fondo para modo oscuro
+    },
+    inputDark: {
+        borderColor: '#757575', // Tu color de borde para modo oscuro
+        color: '#FFFFFF', // Color del texto para modo oscuro
+    },
+    textDark: {
+        color: '#D3D3D3', // Color del texto para modo oscuro
+    },
+    robotFlashImage: {
+        width: 200,
+        height: 200,
+        resizeMode: 'contain',
+        marginBottom: 20,
+    },
     container: {
         flex: 1,
         padding: 20,

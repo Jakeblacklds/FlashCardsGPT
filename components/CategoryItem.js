@@ -114,6 +114,7 @@ const CategoryItem = ({ category, onPress, onDelete }) => {
       onPress={() => onPress(category, colorPair)}
       onLongPress={showMenu}
     >
+
       <View style={styles.imageContainer}>
           <Image source={{ uri: categoryImageUri }} style={styles.categoryImage} />
         
@@ -126,6 +127,8 @@ const CategoryItem = ({ category, onPress, onDelete }) => {
           {category.name}
         </Text> 
       </View>
+
+
     </TouchableOpacity>
   );
 };
@@ -147,7 +150,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
-    borderWidth: 2,
+    borderWidth: 2, // Aumenta el ancho del borde para dar más énfasis
+    borderColor: 'black', // Puedes cambiar el color según tu preferencia
+    backgroundColor: 'white', // El color de fondo también afecta la apariencia 3D
+    shadowColor: 'black', // Agrega sombras alrededor de la tarjeta
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25, // Aumenta la opacidad de la sombra
+    shadowRadius: 10, // Aumenta el radio de la sombra
+    elevation: 12, // Aumenta la profundidad de la tarjeta
   },
   categoryName: {
     paddingTop: 20,

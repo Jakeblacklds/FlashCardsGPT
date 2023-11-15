@@ -1,49 +1,22 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { initializeApp } from "firebase/app";
 import { firebaseConfig } from '../firebase-config';
-import { useNavigation } from '@react-navigation/native'; // Agregar la importación
+import { useNavigation } from '@react-navigation/native';
 
 const LoginScreen = (props) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const navigation = useNavigation(); // Utilizar useNavigation para la navegación
+    const [modalVisible, setModalVisible] = useState(false);
+    const navigation = useNavigation();
 
-    const handleEmailChange = (text) => {
-        setEmail(text);
-    };
-
-    const handlePasswordChange = (text) => {
-        setPassword(text);
-    };
+    const handleEmailChange = (text) => setEmail(text);
+    const handlePasswordChange = (text) => setPassword(text);
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-
-    const handleCreateAccount = async () => {
-        try {
-            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-            console.log("Usuario creado");
-            const user = userCredential.user;
-            console.log(user);
-            await AsyncStorage.setItem('user', JSON.stringify(user));
-            if (props.onAuthenticated) {
-                props.onAuthenticated();
-            }
-        } catch (error) {
-            console.log("Error al crear el usuario");
-            console.log(error);
-
-            // Agregar una alerta sencilla
-            Alert.alert(
-                "Error",
-                "El correo ya está registrado",
-                [{ text: "OK" }]
-            );
-        }
-    };
 
     const handleSignIn = async () => {
         try {
@@ -59,6 +32,22 @@ const LoginScreen = (props) => {
         } catch (error) {
             console.log("Error al loguear el usuario");
             console.log(error);
+        }
+    };
+
+    const handleCreateAccount = (auth, setModalVisible) => async (modalEmail, modalPassword) => {
+        try {
+            const userCredential = await createUserWithEmailAndPassword(auth, modalEmail, modalPassword);
+            console.log("Usuario creado");
+            const user = userCredential.user;
+            console.log(user);
+            await AsyncStorage.setItem('user', JSON.stringify(user));
+            setModalVisible(false);
+            Alert.alert("Cuenta creada", "Ahora puedes iniciar sesión", [{ text: "OK" }]);
+        } catch (error) {
+            console.log("Error al crear el usuario");
+            console.log(error);
+            Alert.alert("Error", "El correo ya está registrado", [{ text: "OK" }]);
         }
     };
 
@@ -84,11 +73,57 @@ const LoginScreen = (props) => {
                 <TouchableOpacity style={styles.button} onPress={handleSignIn}>
                     <Text style={styles.buttonText}>Iniciar Sesión</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.createAccountButton} onPress={handleCreateAccount}>
+                <TouchableOpacity style={styles.createAccountButton} onPress={() => setModalVisible(true)}>
                     <Text style={styles.createAccountButtonText}>Crear Cuenta</Text>
                 </TouchableOpacity>
             </View>
+            <CreateAccountModal
+                visible={modalVisible}
+                onClose={() => setModalVisible(false)}
+                onCreateAccount={handleCreateAccount(auth, setModalVisible)}
+            />
         </View>
+    );
+};
+
+const CreateAccountModal = ({ visible, onClose, onCreateAccount }) => {
+    const [modalEmail, setModalEmail] = useState('');
+    const [modalPassword, setModalPassword] = useState('');
+
+    return (
+        <Modal
+            animationType="slide"
+            transparent={true}
+            visible={visible}
+            onRequestClose={onClose}
+        >
+            <View style={styles.modalView}>
+                <Text style={styles.title}>Crea Una Cuenta Nueva</Text>
+                <TextInput
+                    style={styles.input}
+                    placeholder="Correo electrónico"
+                    onChangeText={setModalEmail}
+                />
+                <TextInput
+                    style={styles.input}
+                    placeholder="Contraseña"
+                    secureTextEntry
+                    onChangeText={setModalPassword}
+                />
+                <TouchableOpacity
+                    style={styles.button}
+                    onPress={() => onCreateAccount(modalEmail, modalPassword)}
+                >
+                    <Text style={styles.buttonText}>Crear Cuenta</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.button}
+                    onPress={onClose}
+                >
+                    <Text style={styles.buttonText}>Cancelar</Text>
+                </TouchableOpacity>
+            </View>
+        </Modal>
     );
 };
 
@@ -97,14 +132,14 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#34495E', // Cambiar el color de fondo a un tono más oscuro y atractivo
+        backgroundColor: '#34495E',
     },
     loginBox: {
         width: '80%',
         borderRadius: 20,
         padding: 20,
         alignItems: 'center',
-        backgroundColor: '#FFFFFF', // Cambiar el color del recuadro de inicio de sesión a blanco
+        backgroundColor: '#FFFFFF',
         shadowColor: 'rgba(0, 0, 0, 0.2)',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 1,
@@ -116,6 +151,7 @@ const styles = StyleSheet.create({
         fontFamily: 'Pagebash',
         marginBottom: 20,
         color: '#333',
+        textAlign: 'center',
     },
     input: {
         width: '100%',
@@ -126,41 +162,58 @@ const styles = StyleSheet.create({
         marginBottom: 15,
         borderWidth: 1,
         borderColor: '#ccc',
-        color: '#333', // Cambiar el color del texto de entrada
+        color: '#333',
     },
     button: {
         width: '100%',
-        backgroundColor: '#3498DB', // Cambiar el color del botón de inicio de sesión
+        backgroundColor: '#3498DB',
         borderRadius: 10,
         paddingVertical: 15,
         alignItems: 'center',
         marginTop: 10,
-        shadowColor: 'rgba(52, 152, 219, 0.5)', // Color del sombreado
-        shadowOffset: { width: 0, height: 4 }, // Tamaño del sombreado
-        shadowOpacity: 1, // Opacidad del sombreado
-        shadowRadius: 8, // Radio del sombreado
+        shadowColor: 'rgba(52, 152, 219, 0.5)',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 1,
+        shadowRadius: 8,
     },
     buttonText: {
+        fontFamily: 'Pagebash',
         color: 'white',
         fontSize: 18,
-        fontWeight: 'bold',
+        
     },
     createAccountButton: {
-        width: '100%',
-        backgroundColor: '#E74C3C', // Cambiar el color del botón Crear Cuenta
+        width: '50%',
+        backgroundColor: '#E74C3C',
         borderRadius: 10,
-        paddingVertical: 15,
+        paddingVertical: 10,
         alignItems: 'center',
         marginTop: 10,
-        shadowColor: 'rgba(231, 76, 60, 0.5)', // Color del sombreado
-        shadowOffset: { width: 0, height: 4 }, // Tamaño del sombreado
-        shadowOpacity: 1, // Opacidad del sombreado
-        shadowRadius: 8, // Radio del sombreado
+        shadowColor: 'rgba(231, 76, 60, 0.5)',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 1,
+        shadowRadius: 8,
     },
     createAccountButtonText: {
         color: 'white',
         fontSize: 18,
         fontFamily: 'Pagebash',
+    },
+    modalView: {
+        top: '23%',
+        margin: 20,
+        backgroundColor: "white",
+        borderRadius: 20,
+        padding: 40,
+        alignItems: "center",
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: 2
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 5
     },
 });
 

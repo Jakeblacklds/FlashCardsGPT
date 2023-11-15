@@ -2,10 +2,13 @@
 import React, { useState } from 'react';
 import { View, TextInput, TouchableOpacity, FlatList, Text, StyleSheet } from 'react-native';
 import axios from 'axios';
+import { selectDarkMode } from '../darkModeSlice';
+import { useSelector } from 'react-redux';
 
 const AddCategory = ({ navigation }) => {
   const [category, setCategory] = useState('');
   const [flashcards, setFlashcards] = useState([{ english: '', spanish: '' }]);
+  const darkModeEnabled = useSelector(selectDarkMode);
 
   const handleAddCategory = async () => {
     try {
@@ -14,23 +17,23 @@ const AddCategory = ({ navigation }) => {
         alert('Por favor, ingrese un nombre de categoría.');
         return;
       }
-  
+
       const flashcardsObject = flashcards.reduce((obj, item, index) => {
         obj[`flashcard${index + 1}`] = item;
         return obj;
       }, {});
-  
+
       // Modifica la URL para incluir el nombre de la categoría
       const url = `https://flashcardgpt-default-rtdb.firebaseio.com/users/SpanishFlashcards/categories/${encodeURIComponent(category)}.json`;
-  
+
       await axios.put(url, {
         name: category,
         flashcards: flashcardsObject
       });
-  
+
       alert('¡Lista Creada!');
       navigation.navigate('Categorías');
-  
+
     } catch (error) {
       console.error('Error al agregar categoría y flashcards a Firebase:', error);
     }
@@ -47,10 +50,11 @@ const AddCategory = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, darkModeEnabled ? styles.containerDark : {}]}>
       <TextInput
-        style={styles.inputCategory}
+        style={[styles.inputCategory, darkModeEnabled ? styles.inputDark : {}]}
         placeholder="Nombre de la categoría"
+        placeholderTextColor={darkModeEnabled ? "#D3D3D3" : "#333"} // Cambia el color del placeholder también
         value={category}
         onChangeText={(text) => setCategory(text)}
       />
@@ -59,15 +63,20 @@ const AddCategory = ({ navigation }) => {
         data={flashcards}
         renderItem={({ item, index }) => (
           <View>
+            <Text style={[styles.flashcardTitle, darkModeEnabled ? styles.textDark : {}]}>
+              Flashcard {index + 1}
+            </Text>
             <TextInput
-              style={styles.flashcardInput}
+              style={[styles.flashcardInput, darkModeEnabled ? styles.inputDark : {}]}
               placeholder="Inglés"
+              placeholderTextColor={darkModeEnabled ? "#D3D3D3" : "#333"} // Cambia el color del placeholder también
               value={item.english}
               onChangeText={(text) => handleFlashcardChange(index, 'english', text)}
             />
             <TextInput
-              style={styles.flashcardInput}
+              style={[styles.flashcardInput, darkModeEnabled ? styles.inputDark : {}]}
               placeholder="Español"
+              placeholderTextColor={darkModeEnabled ? "#D3D3D3" : "#333"} // Cambia el color del placeholder también
               value={item.spanish}
               onChangeText={(text) => handleFlashcardChange(index, 'spanish', text)}
             />
@@ -87,10 +96,29 @@ const AddCategory = ({ navigation }) => {
     </View>
   );
 };
-
 const styles = StyleSheet.create({
+  containerDark: {
+    backgroundColor: '#121212', // Cambiar según tu paleta de colores para el modo oscuro
+  },
+  inputDark: {
+    borderColor: '#757575', // Color del borde para el modo oscuro
+    color: 'white', 
+    // Color del texto para el modo oscuro
+  },
+  textDark: {
+    color: '#D3D3D3', // Color del texto para el modo oscuro
+  },
+  flashcardTitle: {
+    fontFamily: 'Pagebash',
+    padding: 5,
+    marginVertical: 5,
+    fontSize: 20, // Tamaño del texto del título
+
+    color: '#333', // Color del texto del título
+    textAlign: 'center', // Alineación del texto
+  },
   container: {
-    
+
     flex: 1,
     paddingTop: 80,
     padding: 16,
@@ -104,8 +132,8 @@ const styles = StyleSheet.create({
     borderWidth: 4,
     borderRadius: 10,
   },
-    input: {
-    
+  input: {
+    textAlign: 'center',
     padding: 10,
     marginVertical: 10,
     borderColor: '#ccc',
@@ -121,7 +149,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   addButton: {
-    
+
     backgroundColor: '#e07a5f', // Color de fondo del botón de tu paleta
     padding: 10,
     alignItems: 'center',
@@ -131,7 +159,7 @@ const styles = StyleSheet.create({
   buttonText: {
     fontFamily: 'Pagebash',
     color: '#FFF3E0', // Color del texto del botón de tu paleta
-    
+
   },
 });
 

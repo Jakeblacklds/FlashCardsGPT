@@ -4,35 +4,34 @@ import { useNavigation } from '@react-navigation/native';
 import { useSelector, useDispatch } from 'react-redux';
 import { selectDarkMode, toggleDarkMode } from '../darkModeSlice';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../AuthContext'; // Importa useAuth desde AuthContext
 
-const AccountScreen = ({ handleLogout }) => {
+const AccountScreen = () => {
   const navigation = useNavigation();
   const dispatch = useDispatch();
   const darkModeEnabled = useSelector(selectDarkMode);
+  const { handleLogout } = useAuth(); // Utiliza el hook useAuth para obtener handleLogout
 
-  // Creamos un valor animado para la opacidad y el color de fondo
   const [iconOpacity] = useState(new Animated.Value(darkModeEnabled ? 1 : 0));
-  const [backgroundColor] = useState(new Animated.Value(darkModeEnabled ? 1 : 0)); // 0: light, 1: dark
+  const [backgroundColor] = useState(new Animated.Value(darkModeEnabled ? 1 : 0));
 
   useEffect(() => {
-    // Animamos la opacidad cuando cambia el modo oscuro
     Animated.timing(iconOpacity, {
       toValue: darkModeEnabled ? 1 : 0,
       duration: 500,
       useNativeDriver: true,
     }).start();
 
-    // Animamos el color de fondo cuando cambia el modo oscuro
     Animated.timing(backgroundColor, {
       toValue: darkModeEnabled ? 1 : 0,
       duration: 500,
-      useNativeDriver: false, // 'useNativeDriver' debe ser 'false' para animar colores
+      useNativeDriver: false,
     }).start();
   }, [darkModeEnabled, backgroundColor, iconOpacity]);
 
   const backgroundStyle = backgroundColor.interpolate({
     inputRange: [0, 1],
-    outputRange: ['rgb(245, 245, 245)', '#121212'], // De claro a oscuro
+    outputRange: ['rgb(245, 245, 245)', '#121212'],
   });
 
   const onLogoutPress = async () => {
@@ -68,6 +67,7 @@ const AccountScreen = ({ handleLogout }) => {
     </Animated.View>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {
