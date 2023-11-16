@@ -9,6 +9,8 @@ const AddCategory = ({ navigation }) => {
   const [category, setCategory] = useState('');
   const [flashcards, setFlashcards] = useState([{ english: '', spanish: '' }]);
   const darkModeEnabled = useSelector(selectDarkMode);
+  const currentUserUID = useSelector(state => state.flashcards.currentUserUID); // Obtén el UID del usuario actual
+
 
   const handleAddCategory = async () => {
     try {
@@ -17,27 +19,34 @@ const AddCategory = ({ navigation }) => {
         alert('Por favor, ingrese un nombre de categoría.');
         return;
       }
-
+  
+      // Verifica que el UID del usuario esté disponible
+      if (!currentUserUID) {
+        console.error('UID de usuario no disponible');
+        return;
+      }
+  
       const flashcardsObject = flashcards.reduce((obj, item, index) => {
         obj[`flashcard${index + 1}`] = item;
         return obj;
       }, {});
-
-      // Modifica la URL para incluir el nombre de la categoría
-      const url = `https://flashcardgpt-default-rtdb.firebaseio.com/users/SpanishFlashcards/categories/${encodeURIComponent(category)}.json`;
-
+  
+      // Modifica la URL para incluir el UID del usuario y el nombre de la categoría
+      const url = `https://flashcardgpt-default-rtdb.firebaseio.com/users/${currentUserUID}/categories/${encodeURIComponent(category)}.json`;
+  
       await axios.put(url, {
         name: category,
         flashcards: flashcardsObject
       });
-
+  
       alert('¡Lista Creada!');
       navigation.navigate('Categorías');
-
+  
     } catch (error) {
       console.error('Error al agregar categoría y flashcards a Firebase:', error);
     }
   };
+  
 
   const handleAddFlashcard = () => {
     setFlashcards([...flashcards, { english: '', spanish: '' }]);
@@ -96,6 +105,8 @@ const AddCategory = ({ navigation }) => {
     </View>
   );
 };
+
+
 const styles = StyleSheet.create({
   containerDark: {
     backgroundColor: '#121212', // Cambiar según tu paleta de colores para el modo oscuro

@@ -10,6 +10,13 @@ const FlashcardList = ({ navigation, route }) => {
   const flashcards = useSelector((state) => selectFlashcardsByCategory(state, category));
   const darkModeEnabled = useSelector(selectDarkMode); // Usa el selector para obtener el estado del modo oscuro
   const dispatch = useDispatch();
+    const currentUserUID = useSelector(state => state.flashcards.currentUserUID); // Obtén el UID del usuario actual
+
+  useEffect(() => {
+    if (currentUserUID) {
+      dispatch(fetchFlashcardsByCategory(currentUserUID, category)); // Usa el UID del usuario para la solicitud
+    }
+  }, [dispatch, category, currentUserUID]); 
 
   if (!colorPair) {
     console.error('colorPair is undefined in FlashcardList');
@@ -28,7 +35,7 @@ const FlashcardList = ({ navigation, route }) => {
     dispatch(deleteFlashcard(flashcardId));
 
     try {
-      await axios.delete(`https://flashcardgpt-default-rtdb.firebaseio.com/users/SpanishFlashcards/categories/${category}/flashcards/${flashcardId}.json`);
+      await axios.delete(`https://flashcardgpt-default-rtdb.firebaseio.com/users/${currentUserUID}/categories/${category}/flashcards/${flashcardId}.json`); // Usa el UID del usuario en la URL
     } catch (error) {
       console.error('Error al eliminar flashcard de Firebase:', error);
     }
@@ -49,11 +56,7 @@ const FlashcardList = ({ navigation, route }) => {
     );
   };
 
-  useEffect(() => {
-    console.log('Efecto ejecutado');
-    const user_id = "SpanishFlashcards";  // Este es un valor constante, pero en realidad deberías obtenerlo de algún lugar.
-    dispatch(fetchFlashcardsByCategory(user_id, category));
-  }, [category]);
+
 
   return (
     <View style={[styles.container, { backgroundColor: darkModeEnabled ? '#121212' : colorPair.background }]}> 

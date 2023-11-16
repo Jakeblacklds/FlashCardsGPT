@@ -65,14 +65,7 @@ const CategoryItem = ({ category, onPress, onDelete }) => {
 
 
   const handleDelete = () => {
-    Alert.alert(
-      "Eliminar Categoría",
-      "¿Seguro que quieres borrarla?",
-      [
-        { text: "Cancelar", style: "cancel" },
-        { text: "Aceptar", onPress: () => onDelete(category.id) }
-      ]
-    );
+    onDelete(category.id);
   };
 
   const handleSelectImage = async () => {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, TextInput, TouchableOpacity, Text, StyleSheet } from 'react-native';
-import { useDispatch } from 'react-redux';
+import { useDispatch , useSelector} from 'react-redux';
 import axios from 'axios';
 import { addFlashcard } from '../FlashcardSlice';
 
@@ -10,36 +10,40 @@ const AddFlashcard = ({ navigation, route }) => {
   const [imageUri, setImageUri] = useState(null);
   const dispatch = useDispatch();
   const { category, colorPair } = route.params;
-
+  const currentUserUID = useSelector(state => state.flashcards.currentUserUID); // Obtén el UID del usuario actual
 
   const handleAddFlashcard = async () => {
     const newFlashcardId = 'flashcard' + Math.floor(Math.random() * 10342341); // Genera un identificador único
 
     const newFlashcard = {
-        id: newFlashcardId,
-        imageUri,
-        english,
-        spanish,
-        category,
+      id: newFlashcardId,
+      imageUri,
+      english,
+      spanish,
+      category,
     };
 
     try {
-        // Envía la nueva flashcard a Firebase en tiempo real
-        await axios.put(
-            `https://flashcardgpt-default-rtdb.firebaseio.com/users/SpanishFlashcards/categories/${category}/flashcards/${newFlashcardId}.json`,
-            newFlashcard
-        );
+      // Asegúrate de que el UID del usuario esté disponible
+      if (!currentUserUID) {
+        console.error('UID de usuario no disponible');
+        return;
+      }
 
-        // Actualiza el estado local después de agregar la flashcard a Firebase
-        dispatch(addFlashcard(newFlashcard));
-        setEnglish('');
-        setSpanish('');
-        setImageUri(null);
-        console.log('colorPair antes de navegar:', colorPair);
-        navigation.navigate('FlashcardList', { category, colorPair });
-        
+      // Envía la nueva flashcard a Firebase
+      await axios.put(
+        `https://flashcardgpt-default-rtdb.firebaseio.com/users/${currentUserUID}/categories/${category}/flashcards/${newFlashcardId}.json`,
+        newFlashcard
+      );
+
+      // Actualiza el estado local después de agregar la flashcard a Firebase
+      dispatch(addFlashcard(newFlashcard));
+      setEnglish('');
+      setSpanish('');
+      setImageUri(null);
+      navigation.navigate('FlashcardList', { category, colorPair });
     } catch (error) {
-        console.error('Error al agregar flashcard a Firebase:', error);
+      console.error('Error al agregar flashcard a Firebase:', error);
     }
   };
 

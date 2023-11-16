@@ -5,12 +5,16 @@ import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } f
 import { initializeApp } from "firebase/app";
 import { firebaseConfig } from '../firebase-config';
 import { useNavigation } from '@react-navigation/native';
+import axios from 'axios'; // Asegúrate de que axios esté instalado
+import { useDispatch } from 'react-redux';
+import { setCurrentUserUID } from '../FlashcardSlice';
 
 const LoginScreen = (props) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [modalVisible, setModalVisible] = useState(false);
     const navigation = useNavigation();
+    const dispatch = useDispatch();
 
     const handleEmailChange = (text) => setEmail(text);
     const handlePasswordChange = (text) => setPassword(text);
@@ -23,33 +27,59 @@ const LoginScreen = (props) => {
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             console.log("Usuario logueado");
             const user = userCredential.user;
-            console.log(user);
-            await AsyncStorage.setItem('user', JSON.stringify(user));
+            await AsyncStorage.setItem('user', JSON.stringify({ uid: user.uid }));
+            
+            // Despacha la acción para establecer el UID del usuario
+            dispatch(setCurrentUserUID(user.uid)); 
+    
             if (props.onAuthenticated) {
                 props.onAuthenticated();
             }
             navigation.navigate('TabNavigator');
         } catch (error) {
-            console.log("Error al loguear el usuario");
-            console.log(error);
+            console.log("Error al loguear el usuario:", error);
+            Alert.alert("Error", "No se pudo iniciar sesión", [{ text: "OK" }]);
         }
     };
 
-    const handleCreateAccount = (auth, setModalVisible) => async (modalEmail, modalPassword) => {
+    const handleCreateAccount = async (modalEmail, modalPassword) => {
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, modalEmail, modalPassword);
             console.log("Usuario creado");
             const user = userCredential.user;
-            console.log(user);
-            await AsyncStorage.setItem('user', JSON.stringify(user));
+    
+            // UID del usuario
+            const uid = user.uid;
+    
+            // Crear una estructura en Firebase para el nuevo usuario con una categoría y flashcard por defecto
+            const newUserStructure = {
+                categories: {
+                    "Animales": {
+                        "flashcards": {
+                            "flashcard1": {
+                                "english": "dog",
+                                "spanish": "perro"
+                            }
+                        },
+                        "name": "Animales"
+                    }
+                }
+            };
+    
+            // URL con el UID del usuario
+            const url = `https://flashcardgpt-default-rtdb.firebaseio.com/users/${uid}.json`;
+    
+            const response = await axios.put(url, newUserStructure);
+            console.log("Respuesta de Firebase:", response);
+    
             setModalVisible(false);
             Alert.alert("Cuenta creada", "Ahora puedes iniciar sesión", [{ text: "OK" }]);
         } catch (error) {
-            console.log("Error al crear el usuario");
-            console.log(error);
-            Alert.alert("Error", "El correo ya está registrado", [{ text: "OK" }]);
+            console.error("Error al crear el usuario en Firebase:", error);
+            Alert.alert("Error", "No se pudo crear la cuenta", [{ text: "OK" }]);
         }
     };
+    
 
     return (
         <View style={styles.container}>
@@ -80,7 +110,7 @@ const LoginScreen = (props) => {
             <CreateAccountModal
                 visible={modalVisible}
                 onClose={() => setModalVisible(false)}
-                onCreateAccount={handleCreateAccount(auth, setModalVisible)}
+                onCreateAccount={handleCreateAccount}
             />
         </View>
     );

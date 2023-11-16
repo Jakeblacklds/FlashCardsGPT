@@ -12,6 +12,8 @@ const AddGpt = ({ navigation }) => {
     const [category, setCategory] = useState('');
     const [numFlashcards, setNumFlashcards] = useState(0);
     const darkModeEnabled = useSelector(selectDarkMode);
+    const currentUserUID = useSelector(state => state.flashcards.currentUserUID); // Obtén el UID del usuario actual
+
 
     const fetchFlashcardsFromGPT = async () => {
         const prompt = `
@@ -61,7 +63,12 @@ const AddGpt = ({ navigation }) => {
 
         try {
             // Aquí solo necesitas agregar la nueva categoría, no sobrescribir todas las categorías.
-            const categoryUrl = `https://flashcardgpt-default-rtdb.firebaseio.com/users/SpanishFlashcards/categories/${encodeURIComponent(category)}.json`;
+            if (!currentUserUID) {
+                console.error('UID de usuario no disponible');
+                return;
+            }
+    
+            const categoryUrl = `https://flashcardgpt-default-rtdb.firebaseio.com/users/${currentUserUID}/categories/${encodeURIComponent(category)}.json`;
             await axios.put(categoryUrl, {
                 name: category,
                 flashcards: flashcardsObject
@@ -95,7 +102,15 @@ const AddGpt = ({ navigation }) => {
                     Número de Flashcards: {numFlashcards}
                 </Text>
                 <Slider
-                    // ... (resto de las propiedades del Slider)
+                    style={styles.slider}
+                    minimumValue={0}
+                    maximumValue={10}
+                    step={1}
+                    value={numFlashcards}
+                    onValueChange={(value) => setNumFlashcards(value)}
+                    minimumTrackTintColor="#e07a5f" // Color del slider para modo claro
+                    maximumTrackTintColor="#e07a5f" // Color del slider para modo claro
+                    thumbTintColor="#e07a5f" // Color del slider para modo claro
                 />
             </View>
             <TouchableOpacity style={styles.button} onPress={handleAddCategoryAndFlashcards}>

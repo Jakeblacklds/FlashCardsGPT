@@ -9,13 +9,14 @@ import {
   Alert,
 } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
-import { deleteCategory, fetchCategories } from '../FlashcardSlice';
+import { deleteCategory, fetchCategories,setCurrentUserUID } from '../FlashcardSlice';
 import { useFocusEffect } from '@react-navigation/native';
 import { MaterialCommunityIcons, AntDesign } from '@expo/vector-icons';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import CategoryItem from '../components/CategoryItem';
 import * as ImagePicker from 'expo-image-picker';
 import { addImageToCategory } from '../FlashcardSlice';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { selectDarkMode } from '../darkModeSlice';
 
@@ -29,13 +30,28 @@ const CategoriesScreen = ({ navigation }) => {
   const [categoryToDisplay, setCategoryToDisplay] = useState('');
   const categoryBackgroundColor = useSharedValue('rgba(0,0,0,0.7)');
   const categoryTextColor = useSharedValue('white');
+  const currentUserUID = useSelector(state => state.flashcards.currentUserUID);
 
+  useEffect(() => {
+    const loadCategories = async () => {
+      // Intenta obtener el UID del usuario del almacenamiento local si no está en el estado de Redux
+      if (!currentUserUID) {
+        const storedUser = await AsyncStorage.getItem('user');
+        if (storedUser) {
+          const { uid } = JSON.parse(storedUser);
+          dispatch(setCurrentUserUID(uid));
+        }
+      }
+      dispatch(fetchCategories());
+    };
 
+    loadCategories();
+  }, [dispatch, currentUserUID]);
 
+  //otrouseEffect para actualizar las categorias cuando se agrega una nueva
   useFocusEffect(
     React.useCallback(() => {
       dispatch(fetchCategories());
-      return () => { };
     }, [dispatch])
   );
 

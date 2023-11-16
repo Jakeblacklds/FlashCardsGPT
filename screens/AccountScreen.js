@@ -4,14 +4,15 @@ import { useNavigation } from '@react-navigation/native';
 import { useSelector, useDispatch } from 'react-redux';
 import { selectDarkMode, toggleDarkMode } from '../darkModeSlice';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '../AuthContext'; // Importa useAuth desde AuthContext
+import { useAuth } from '../AuthContext'; 
+import AwesomeButton from "react-native-really-awesome-button";
 
 const AccountScreen = () => {
   const navigation = useNavigation();
   const dispatch = useDispatch();
   const darkModeEnabled = useSelector(selectDarkMode);
-  const { handleLogout } = useAuth(); // Utiliza el hook useAuth para obtener handleLogout
-
+  const { handleLogout } = useAuth();
+  
   const [iconOpacity] = useState(new Animated.Value(darkModeEnabled ? 1 : 0));
   const [backgroundColor] = useState(new Animated.Value(darkModeEnabled ? 1 : 0));
 
@@ -61,9 +62,9 @@ const AccountScreen = () => {
           <Ionicons name="moon" size={24} color='#f4f3f4' />
         </Animated.View>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.logoutButton} onPress={onLogoutPress}>
+      <AwesomeButton style={styles.logoutButton} onPress={onLogoutPress}>
         <Text style={styles.logoutButtonText}>Cerrar sesión</Text>
-      </TouchableOpacity>
+      </AwesomeButton>
     </Animated.View>
   );
 };
