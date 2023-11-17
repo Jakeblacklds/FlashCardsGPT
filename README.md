@@ -68,5 +68,7 @@ Contribute
 Contributions are welcome. To contribute, please open an issue first to discuss what you would like to change.
 
 
-![Imagen de WhatsApp 2023-11-17 a las 09 02 57_4bce8be2](https://github.com/Jakeblacklds/ProyectoCasiFinal/assets/121570855/64161301-452b-4d3d-9b0b-6cdc0292f108)
-![Imagen de WhatsApp 2023-11-17 a las 09 02 56_5bbd5471](https://github.com/Jakeblacklds/ProyectoCasiFinal/assets/121570855/07d8ea5c-9ff7-4206-a739-9a7e5a43cea1)
+
+https://github.com/Jakeblacklds/ProyectoCasiFinal/assets/121570855/cd57dfe2-fc34-4a1c-8c78-6e3ff75aab3d
+
+
