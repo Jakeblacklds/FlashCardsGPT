@@ -88,7 +88,9 @@ const ChatScreen = () => {
         />
         <Text style={[styles.text, { color: darkModeEnabled ? '#D3D3D3' : 'black' }]}>Roleplay</Text>
       </View>
-      <ScrollView style={styles.chat}>
+      <ScrollView 
+      style={[styles.chat, { borderColor: darkModeEnabled ? '#434753' : '#3F37C9' }]}
+      >
   {messages.map((message, index) => (
     <View
       key={index}
@@ -120,7 +122,7 @@ const ChatScreen = () => {
     </View>
   ))}
 </ScrollView>
-      <View style={styles.inputContainer}>
+      <View style={[styles.inputContainer, { color: darkModeEnabled ? '#D3D3D3' : 'black', backgroundColor: darkModeEnabled ? '#434753' : '#3F37C9' }]}>
         <TextInput
           style={[styles.input, { color: darkModeEnabled ? '#D3D3D3' : 'black', backgroundColor: darkModeEnabled ? '#434753' : 'white' }]}
           value={input}
@@ -152,7 +154,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     borderWidth: 3,
-    borderColor: '#f2cc8f',
+    borderColor: '#3F37C9',
   },
   user: {
     textAlign: 'right',
@@ -177,7 +179,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 10,
-    backgroundColor: '#f2cc8f',
+    
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
   },

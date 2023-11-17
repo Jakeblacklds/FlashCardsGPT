@@ -28,3 +28,26 @@ export const chatWithGPT = async (message, mode) => {
   }
 };
 
+
+export const generateImageWithDalle = async (prompt) => {
+  try {
+    const response = await axios.post('https://api.openai.com/v1/images/generations', {
+      model: "dall-e-3",
+      prompt: prompt,
+      n: 1,
+      size: "1024x1024"
+    }, {
+      headers: {
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const imageUrl = response.data.data[0].url; // Asegúrate de que este es el formato correcto de la respuesta
+    return imageUrl;
+  } catch (error) {
+    console.error('Error generating image with DALL·E:', error);
+    throw error;
+  }
+};
+

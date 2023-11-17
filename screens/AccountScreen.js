@@ -5,7 +5,6 @@ import { useSelector, useDispatch } from 'react-redux';
 import { selectDarkMode, toggleDarkMode } from '../darkModeSlice';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../AuthContext'; 
-import AwesomeButton from "react-native-really-awesome-button";
 
 const AccountScreen = () => {
   const navigation = useNavigation();
@@ -62,13 +61,12 @@ const AccountScreen = () => {
           <Ionicons name="moon" size={24} color='#f4f3f4' />
         </Animated.View>
       </TouchableOpacity>
-      <AwesomeButton style={styles.logoutButton} onPress={onLogoutPress}>
+      <TouchableOpacity style={styles.logoutButton} onPress={onLogoutPress}>
         <Text style={styles.logoutButtonText}>Cerrar sesión</Text>
-      </AwesomeButton>
+      </TouchableOpacity>
     </Animated.View>
   );
 };
-
 
 const styles = StyleSheet.create({
   container: {

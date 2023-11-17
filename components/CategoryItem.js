@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { TouchableOpacity, View, Text, StyleSheet, Alert, Image } from 'react-native';
-import { Ionicons, AntDesign } from '@expo/vector-icons';
+import { TouchableOpacity, View, Text, StyleSheet, Alert, Image, Modal, Button } from 'react-native';
 import { useSelector } from 'react-redux';
 import * as ImagePicker from 'expo-image-picker';
 import { selectDarkMode } from '../darkModeSlice';
 import { getRandomColorPair } from '../constants';
 import { fetchImage, upsertImage, deleteImage } from '../db'
 import { useActionSheet } from '@expo/react-native-action-sheet';
+import { FontAwesome } from '@expo/vector-icons'; 
+import { generateImageWithDalle } from '../api';
 
 const CategoryItem = ({ category, onPress, onDelete }) => {
   const [colorPair, setColorPair] = useState(null);
   const [categoryImageUri, setCategoryImageUri] = useState(null);
+  const [isImagePickerModalVisible, setImagePickerModalVisible] = useState(false);
   const darkModeEnabled = useSelector(selectDarkMode);
   const { showActionSheetWithOptions } = useActionSheet();
 
@@ -29,11 +31,22 @@ const CategoryItem = ({ category, onPress, onDelete }) => {
     }
   }, [category, colorPair]);
 
+  const handleGenerateDalleImage = async () => {
+    const prompt = `Generate a colorful and minimalist image about ${category.name} 
+                    the image should be clear and easy to understand. `;
+    try {
+      const imageUrl = await generateImageWithDalle(prompt);
+      await upsertImage(category.id, imageUrl);
+      setCategoryImageUri(imageUrl);
+    } catch (error) {
+      console.error('Error generating image with DALL·E:', error);
+    }
+  };
+
   const showMenu = () => {
-    // Verifica si la imagen existe y ajusta las opciones del menú
-    const imageOption = categoryImageUri ? 'Eliminar Imagen' : 'Agregar Imagen';
-    const options = ['Editar', 'Eliminar Categoría', imageOption, 'Cancelar'];
-    const cancelButtonIndex = 3;
+    const imageOptions = categoryImageUri ? ['Eliminar Imagen'] : ['Agregar Imagen'];
+    const options = ['Editar', 'Eliminar Categoría', ...imageOptions, 'Cancelar'];
+    const cancelButtonIndex = options.length - 1;
 
     showActionSheetWithOptions(
       {
@@ -43,32 +56,34 @@ const CategoryItem = ({ category, onPress, onDelete }) => {
       (buttonIndex) => {
         switch (buttonIndex) {
           case 0:
-            // Implementar lógica para "Editar"
             break;
           case 1:
             handleDelete();
             break;
           case 2:
             if (categoryImageUri) {
-              handleDeleteImage(); // Implementar lógica para eliminar la imagen
+              handleDeleteImage();
             } else {
-              handleSelectImage(); // Implementar lógica para agregar la imagen
+              handleSelectImage();
             }
             break;
+          
           default:
-            // Cancelar o cualquier otra acción
             break;
         }
       }
     );
-};
-
+  };
 
   const handleDelete = () => {
     onDelete(category.id);
   };
 
-  const handleSelectImage = async () => {
+  const handleSelectImage = () => {
+    setImagePickerModalVisible(true);
+  };
+
+  const handleChooseFromGallery = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
@@ -77,13 +92,19 @@ const CategoryItem = ({ category, onPress, onDelete }) => {
     });
   
     if (!result.canceled) {
-      const imageUri = result.assets[0].uri; // Usar 'assets' en lugar de 'uri' directamente
+      const imageUri = result.assets[0].uri;
       upsertImage(category.id, imageUri)
         .then(() => {
           setCategoryImageUri(imageUri);
         })
         .catch((err) => console.log(err));
     }
+    setImagePickerModalVisible(false);
+  };
+
+  const handleGenerateDalleImageModal = async () => {
+    await handleGenerateDalleImage();
+    setImagePickerModalVisible(false);
   };
 
   const handleDeleteImage = () => {
@@ -107,10 +128,11 @@ const CategoryItem = ({ category, onPress, onDelete }) => {
       onPress={() => onPress(category, colorPair)}
       onLongPress={showMenu}
     >
-
       <View style={styles.imageContainer}>
-          <Image source={{ uri: categoryImageUri }} style={styles.categoryImage} />
-        
+        {categoryImageUri 
+          ? <Image source={{ uri: categoryImageUri }} style={styles.categoryImage} />
+          : <FontAwesome name="photo" size={80} color={darkModeEnabled ? '#D3D3D3' : colorPair ? colorPair.text : 'black'} />
+        }
       </View>
       <View style={styles.gradient}>
         <Text style={[
@@ -121,77 +143,110 @@ const CategoryItem = ({ category, onPress, onDelete }) => {
         </Text> 
       </View>
 
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isImagePickerModalVisible}
+        onRequestClose={() => {
+          setImagePickerModalVisible(!isImagePickerModalVisible);
+        }}
+      >
+        <View style={[styles.centeredView]}>
+          <View style={[styles.modalView, {backgroundColor: '#f72585'}]}>
+            <Text style={[styles.modalText, {color: '#FFE8FF'}]}>Elige una opción para la imagen:</Text>
+            
+            <TouchableOpacity style={[styles.modalButton, {backgroundColor: '#FFE8FF'}]}
+              onPress={handleChooseFromGallery}>
+              <Text style={[styles.buttonText, {color: '#f72585'}]}>Elegir de la Galería</Text>
+            </TouchableOpacity>
 
+            <TouchableOpacity style={[styles.modalButton, {backgroundColor: '#FFE8FF'}]}
+              onPress={handleGenerateDalleImageModal}>
+              <Text style={[styles.buttonText, {color: '#f72585'}]}>Generar con DALL·E</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={[styles.modalButton, {backgroundColor: '#FFE8FF'}]}
+              onPress={() => setImagePickerModalVisible(false)}>
+              <Text style={[styles.buttonText, {color: '#f72585'}]}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
-  deleteIconImage: {
-    position: 'absolute',
-    bottom: 5,
-    right: 5,
-  },
-
-
   category: {
-    width: 140,
-    height: 140,
+    flexDirection: 'row', 
+    width: 320,
+    height: 180,
     borderRadius: 12,
-    margin: 10,
+    margin: 20,
     padding: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-    borderWidth: 2, // Aumenta el ancho del borde para dar más énfasis
-    borderColor: 'black', // Puedes cambiar el color según tu preferencia
-    backgroundColor: 'white', // El color de fondo también afecta la apariencia 3D
-    shadowColor: 'black', // Agrega sombras alrededor de la tarjeta
+    borderWidth: 2, 
+    borderColor: 'black', 
+    backgroundColor: 'white', 
+    shadowColor: 'black', 
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25, // Aumenta la opacidad de la sombra
-    shadowRadius: 10, // Aumenta el radio de la sombra
-    elevation: 12, // Aumenta la profundidad de la tarjeta
+    shadowOpacity: 0.25, 
+    shadowRadius: 10, 
+    elevation: 12, 
   },
   categoryName: {
-    paddingTop: 20,
-    textAlign: 'center',
-    fontSize: 24,
+    fontSize: 30,
     fontFamily: 'Pagebash',
   },
   gradient: {
     flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
     width: '100%',
     height: '100%',
-    position: 'relative',
-  },
-  deleteIcon: {
-    position: 'absolute',
-    top: 5,
-    right: 5,
   },
   categoryImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    position: 'absolute',
-    top: -16,
-    left:70,
-  },
-  imagePlaceholder: {
-    position: 'absolute',
-    top:  -30,
-    left: 10,
+    width: 130,
+    height: 130,
+    borderRadius: 80,
   },
   imageContainer: {
-    position: 'absolute',
-    top: 0,
-    left: -30,
-    height: 60,
-    width: '100%',
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
   },
+  centeredView: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 22
+  },
+  modalView: {
+    margin: 20,
+    borderRadius: 20,
+    padding: 35,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5
+  },
+  modalText: {
+    marginBottom: 15,
+    textAlign: "center"
+  },
+  modalButton: {
+    marginVertical: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20
+  },
+  buttonText: {
+    fontSize: 16
+  }
 });
 
 export default CategoryItem;

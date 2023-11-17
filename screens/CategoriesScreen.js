@@ -88,7 +88,8 @@ const CategoriesScreen = ({ navigation }) => {
       top: 200,
       left: 20,
       right: 20,
-      borderRadius: 40,
+    
+      borderRadius: 10,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.2,
@@ -106,8 +107,10 @@ const CategoriesScreen = ({ navigation }) => {
   const categoryTextStyle = useAnimatedStyle(() => {
     return {
       color: darkModeEnabled ? '#D3D3D3' : categoryTextColor.value,
-      fontSize: 60,
       fontFamily: 'Pagebash',
+      fontSize: 70,
+      textAlign: 'center',
+      
     };
   });
 
@@ -156,6 +159,7 @@ const CategoriesScreen = ({ navigation }) => {
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
+      
       left: posX.value,
       top: posY.value,
       width: width.value,
@@ -171,7 +175,7 @@ const CategoriesScreen = ({ navigation }) => {
     <TouchableWithoutFeedback onPress={handleScreenPress}>
       <View style={[styles.container, { backgroundColor: darkModeEnabled ? '#121212' : '#F5F5F5' }]}>
        
-        <Text style={[styles.title, { color: darkModeEnabled ? '#D3D3D3' : 'black' }]}>Categorías</Text>
+        <Text style={[styles.title, { color: darkModeEnabled ? '#D3D3D3' : 'black' }]}>Flashcards</Text>
         
         <FlatList
           data={categories}
@@ -186,7 +190,7 @@ const CategoriesScreen = ({ navigation }) => {
           )}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.listContainer}
-          numColumns={2}
+          numColumns={1}
         />
         <View style={styles.buttonsContainer}>
           <Animated.View style={[styles.actionButtonContainer, animatedStyle]}>
@@ -242,20 +246,21 @@ const styles = StyleSheet.create({
   container: {
 
     flex: 1,
-    paddingTop: 80,
+    paddingTop: 20,
     backgroundColor: 'white',
+    
   },
   title: {
-    fontFamily: 'Baguile',
-    fontSize: 24,
-    fontWeight: 'bold',
-    margin: 10,
+    fontFamily: 'Pagebash',
+    fontSize: 30,
+    margin: 20,
     textAlign: 'center',
   },
   listContainer: {
     alignItems: 'center',
     flexGrow: 1,
     justifyContent: 'center',
+    paddingBottom: 40,
   },
   buttonsContainer: {
     position: 'absolute',

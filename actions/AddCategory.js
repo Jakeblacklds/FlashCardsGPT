@@ -40,7 +40,7 @@ const AddCategory = ({ navigation }) => {
       });
   
       alert('¡Lista Creada!');
-      navigation.navigate('Categorías');
+      navigation.navigate('Flashcards');
   
     } catch (error) {
       console.error('Error al agregar categoría y flashcards a Firebase:', error);
@@ -133,13 +133,13 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingTop: 80,
     padding: 16,
-    backgroundColor: '#f4f1de', // Color de fondo de tu paleta
+    backgroundColor: '#ECDBFA', // Color de fondo de tu paleta
   },
   inputCategory: {
     fontFamily: 'Pagebash',
     padding: 10,
     marginVertical: 10,
-    borderColor: '#FFD29D',
+    borderColor: '#7209b7',
     borderWidth: 4,
     borderRadius: 10,
   },
@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     padding: 10,
     marginVertical: 10,
-    borderColor: '#ccc',
+    
     borderWidth: 1,
     borderRadius: 10,
   },
@@ -155,13 +155,13 @@ const styles = StyleSheet.create({
     fontFamily: 'Pagebash',
     padding: 10,
     marginVertical: 5,
-    borderColor: '#ccc',
+    borderColor: '#2E294E ',
     borderWidth: 1,
     borderRadius: 10,
   },
   addButton: {
 
-    backgroundColor: '#e07a5f', // Color de fondo del botón de tu paleta
+    backgroundColor: '#7209b7', // Color de fondo del botón de tu paleta
     padding: 10,
     alignItems: 'center',
     borderRadius: 10,

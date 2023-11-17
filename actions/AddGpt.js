@@ -75,7 +75,7 @@ const AddGpt = ({ navigation }) => {
             });
 
             alert('¡Lista Creada!');
-            navigation.navigate('Categorías');
+            navigation.navigate('Flashcards');
         } catch (error) {
             console.error('Error adding category and flashcards to Firebase:', error);
         }
@@ -108,9 +108,9 @@ const AddGpt = ({ navigation }) => {
                     step={1}
                     value={numFlashcards}
                     onValueChange={(value) => setNumFlashcards(value)}
-                    minimumTrackTintColor="#e07a5f" // Color del slider para modo claro
-                    maximumTrackTintColor="#e07a5f" // Color del slider para modo claro
-                    thumbTintColor="#e07a5f" // Color del slider para modo claro
+                    minimumTrackTintColor="#b5179e" // Color del slider para modo claro
+                    maximumTrackTintColor="#b5179e" // Color del slider para modo claro
+                    thumbTintColor="#3f37c9" // Color del slider para modo claro
                 />
             </View>
             <TouchableOpacity style={styles.button} onPress={handleAddCategoryAndFlashcards}>
@@ -142,12 +142,12 @@ const styles = StyleSheet.create({
         padding: 20,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#f4f1de', // Color de fondo de tu paleta
+        backgroundColor: '#ECDBFA', // Color de fondo de tu paleta
     },
     input: {
         padding: 10,
         marginVertical: 10,
-        borderColor: '#ccc',
+        borderColor: '#7209b7',
         borderWidth: 1,
         borderRadius: 10,
     },
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
         height: 40,
     },
     button: {
-        backgroundColor: '#e07a5f', // Color de fondo del botón de tu paleta
+        backgroundColor: '#7209b7', // Color de fondo del botón de tu paleta
         padding: 10,
         alignItems: 'center',
         borderRadius: 10,

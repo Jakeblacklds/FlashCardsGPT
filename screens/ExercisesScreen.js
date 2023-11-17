@@ -14,7 +14,7 @@ const ExercisesScreen = ({ navigation }) => {
     const buttonStyle = [
         styles.button,
         {
-            backgroundColor: darkModeEnabled ? '#3d405b' : '#e07a5f',
+            backgroundColor: darkModeEnabled ? '#3d405b' : '#3f37c9',
             borderColor: darkModeEnabled ? '#f4f1de' : '#3d405b',
         },
     ];
@@ -26,7 +26,7 @@ const ExercisesScreen = ({ navigation }) => {
 
     const subtextStyle = [
         styles.buttonSubtext,
-        { color: darkModeEnabled ? '#f4f1de' : '#43291f' },
+        { color: darkModeEnabled ? '#f4f1de' : '#e07a5f' },
     ];
 
     return (
