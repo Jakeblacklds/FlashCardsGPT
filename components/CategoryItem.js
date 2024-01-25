@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { TouchableOpacity, View, Text, StyleSheet, Alert, Image, Modal, Button } from 'react-native';
+import { TouchableOpacity, View, Text, StyleSheet, Alert, Image, Modal, Button, ActivityIndicator } from 'react-native';
 import { useSelector } from 'react-redux';
 import * as ImagePicker from 'expo-image-picker';
-import { selectDarkMode } from '../darkModeSlice';
+import { selectDarkMode } from '../redux/darkModeSlice';
 import { getRandomColorPair } from '../constants';
 import { fetchImage, upsertImage, deleteImage } from '../db'
 import { useActionSheet } from '@expo/react-native-action-sheet';
-import { FontAwesome } from '@expo/vector-icons'; 
+import { FontAwesome } from '@expo/vector-icons';
 import { generateImageWithDalle } from '../api';
+import LottieView from 'lottie-react-native';
 
 const CategoryItem = ({ category, onPress, onDelete }) => {
+  const [isLoading, setIsLoading] = useState(false);
+
   const [colorPair, setColorPair] = useState(null);
   const [categoryImageUri, setCategoryImageUri] = useState(null);
   const [isImagePickerModalVisible, setImagePickerModalVisible] = useState(false);
@@ -32,14 +35,18 @@ const CategoryItem = ({ category, onPress, onDelete }) => {
   }, [category, colorPair]);
 
   const handleGenerateDalleImage = async () => {
-    const prompt = `Generate a colorful and minimalist image about ${category.name} 
-                    the image should be clear and easy to understand. `;
+    setImagePickerModalVisible(false);
+    setIsLoading(true); // Activar el indicador de carga
+    const prompt = `Create a clear,64 bit pixel art image about ${category.name}. Focus on elements that define the category`;
+
     try {
       const imageUrl = await generateImageWithDalle(prompt);
       await upsertImage(category.id, imageUrl);
       setCategoryImageUri(imageUrl);
     } catch (error) {
       console.error('Error generating image with DALL·E:', error);
+    } finally {
+      setIsLoading(false); // Desactivar el indicador de carga
     }
   };
 
@@ -67,7 +74,7 @@ const CategoryItem = ({ category, onPress, onDelete }) => {
               handleSelectImage();
             }
             break;
-          
+
           default:
             break;
         }
@@ -90,7 +97,7 @@ const CategoryItem = ({ category, onPress, onDelete }) => {
       aspect: [4, 3],
       quality: 1,
     });
-  
+
     if (!result.canceled) {
       const imageUri = result.assets[0].uri;
       upsertImage(category.id, imageUri)
@@ -118,29 +125,41 @@ const CategoryItem = ({ category, onPress, onDelete }) => {
   return (
     <TouchableOpacity
       style={[
-        styles.category, 
+        styles.category,
         {
           backgroundColor: darkModeEnabled ? '#434753' : colorPair ? colorPair.background : 'lightgray',
           borderColor: darkModeEnabled ? 'white' : 'black',
           shadowColor: darkModeEnabled ? 'white' : 'black',
         }
       ]}
-      onPress={() => onPress(category, colorPair)}
+      onPress={() => onPress(category, colorPair, categoryImageUri)}
       onLongPress={showMenu}
     >
       <View style={styles.imageContainer}>
-        {categoryImageUri 
-          ? <Image source={{ uri: categoryImageUri }} style={styles.categoryImage} />
-          : <FontAwesome name="photo" size={80} color={darkModeEnabled ? '#D3D3D3' : colorPair ? colorPair.text : 'black'} />
-        }
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <LottieView
+              source={require('../assets/loadimg2.json')}
+              autoPlay
+              loop
+              speed={.8}
+              style={{ width: 300, height: 150 }}
+            />
+            <Text style={styles.loadingText}>Generando imagen...</Text>
+          </View>
+        ) : categoryImageUri ? (
+          <Image source={{ uri: categoryImageUri }} style={styles.categoryImage} />
+        ) : (
+          <FontAwesome name="photo" size={80} color={darkModeEnabled ? '#D3D3D3' : colorPair ? colorPair.text : 'black'} />
+        )}
       </View>
       <View style={styles.gradient}>
         <Text style={[
-          styles.categoryName, 
+          styles.categoryName,
           { color: darkModeEnabled ? '#D3D3D3' : colorPair ? colorPair.text : 'black' }
         ]}>
           {category.name}
-        </Text> 
+        </Text>
       </View>
 
       <Modal
@@ -152,22 +171,22 @@ const CategoryItem = ({ category, onPress, onDelete }) => {
         }}
       >
         <View style={[styles.centeredView]}>
-          <View style={[styles.modalView, {backgroundColor: '#f72585'}]}>
-            <Text style={[styles.modalText, {color: '#FFE8FF'}]}>Elige una opción para la imagen:</Text>
-            
-            <TouchableOpacity style={[styles.modalButton, {backgroundColor: '#FFE8FF'}]}
+          <View style={[styles.modalView, { backgroundColor: '#f72585' }]}>
+            <Text style={[styles.modalText, { color: '#FFE8FF' }]}>Elige una opción para la imagen:</Text>
+
+            <TouchableOpacity style={[styles.modalButton, { backgroundColor: '#FFE8FF' }]}
               onPress={handleChooseFromGallery}>
-              <Text style={[styles.buttonText, {color: '#f72585'}]}>Elegir de la Galería</Text>
+              <Text style={[styles.buttonText, { color: '#f72585' }]}>Elegir de la Galería</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.modalButton, {backgroundColor: '#FFE8FF'}]}
+            <TouchableOpacity style={[styles.modalButton, { backgroundColor: '#FFE8FF' }]}
               onPress={handleGenerateDalleImageModal}>
-              <Text style={[styles.buttonText, {color: '#f72585'}]}>Generar con DALL·E</Text>
+              <Text style={[styles.buttonText, { color: '#f72585' }]}>Generar con DALL·E</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.modalButton, {backgroundColor: '#FFE8FF'}]}
+            <TouchableOpacity style={[styles.modalButton, { backgroundColor: '#FFE8FF' }]}
               onPress={() => setImagePickerModalVisible(false)}>
-              <Text style={[styles.buttonText, {color: '#f72585'}]}>Cancelar</Text>
+              <Text style={[styles.buttonText, { color: '#f72585' }]}>Cancelar</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -178,23 +197,21 @@ const CategoryItem = ({ category, onPress, onDelete }) => {
 
 const styles = StyleSheet.create({
   category: {
-    flexDirection: 'row', 
-    width: 320,
+    flexDirection: 'row',
+    width: 330,
     height: 180,
     borderRadius: 12,
-    margin: 20,
-    padding: 10,
-    borderWidth: 2, 
-    borderColor: 'black', 
-    backgroundColor: 'white', 
-    shadowColor: 'black', 
+    margin: 12,
+    
+
+    shadowColor: 'black',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25, 
-    shadowRadius: 10, 
-    elevation: 12, 
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 12,
   },
   categoryName: {
-    fontSize: 30,
+    fontSize: 25,
     fontFamily: 'Pagebash',
   },
   gradient: {
@@ -246,7 +263,16 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontSize: 16
-  }
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    color: 'black',
+    fontSize: 14,
+  },
 });
 
 export default CategoryItem;

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Alert, TouchableOpacity, StyleSheet } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchFlashcardsByCategory, selectFlashcardsByCategory } from '../FlashcardSlice';
+import { fetchFlashcardsByCategory, selectFlashcardsByCategory } from '../redux/FlashcardSlice';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
-import { selectDarkMode } from '../darkModeSlice';
+import { selectDarkMode } from '../redux/darkModeSlice';
 
 export default function CheckFlashcardScreen({ route, navigation }) {
     const { category } = route.params;

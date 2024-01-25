@@ -1,86 +1,122 @@
-import React, { useEffect, useState } from 'react';
-import { View, TouchableOpacity, Text, StyleSheet, SafeAreaView } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, TouchableOpacity, Text, StyleSheet, SafeAreaView, FlatList, Dimensions, Animated } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
-import { selectCategories, fetchCategories } from '../FlashcardSlice';
-import { Picker } from '@react-native-picker/picker';
-import { selectDarkMode } from '../darkModeSlice';
+import { selectCategories, fetchCategories } from '../redux/FlashcardSlice';
+import { selectDarkMode } from '../redux/darkModeSlice';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { COLOR_PAIRS, getRandomColorPair } from '../constants';
 
 export default function SelectCategoryScreen({ navigation }) {
   const dispatch = useDispatch();
   const categories = useSelector(selectCategories);
   const darkModeEnabled = useSelector(selectDarkMode);
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const rotationAnim = useRef(new Animated.Value(0)).current;
+  const [pairColor, setPairColor] = useState(COLOR_PAIRS.pair1);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const windowWidth = Dimensions.get('window').width;
 
   useEffect(() => {
     dispatch(fetchCategories());
-  }, [dispatch]);
+    Animated.timing(scaleAnim, {
+      toValue: 1.2,
+      duration: 1000,
+      useNativeDriver: true
+    }).start(() => {
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true
+      }).start();
+    });
+    Animated.sequence([
+      Animated.timing(rotationAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true
+      }),
+      Animated.timing(rotationAnim, {
+        toValue: -1,
+        duration: 500,
+        useNativeDriver: true
+      }),
+      Animated.timing(rotationAnim, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true
+      })
+    ]).start();
+  }, [dispatch, scaleAnim, rotationAnim]);
 
-  const [selectedCategory, setSelectedCategory] = useState(categories[0]?.name || null);
+  const onViewableItemsChanged = useRef(({ viewableItems }) => {
+    if (viewableItems.length > 0 && viewableItems[0].index !== selectedIndex) {
+      setSelectedIndex(viewableItems[0].index);
+      setPairColor(getRandomColorPair());
+    }
+  }).current;
 
-  const darkModeColors = {
-    background: '#121212',
-    text: '#f4f1de',
-    button: '#3d405b',
-    buttonText: '#FFF3E0',
-  };
+  const viewabilityConfig = useRef({
+    itemVisiblePercentThreshold: 50,
+  }).current;
 
-  const containerStyle = {
-    ...styles.container,
-    backgroundColor: darkModeEnabled ? darkModeColors.background : '#f4f1de',
-  };
-
-  const titleStyle = {
-    ...styles.title,
-    color: darkModeEnabled ? darkModeColors.text : '#43291f',
-  };
-
-  const buttonStyle = {
-    ...styles.button,
-    backgroundColor: darkModeEnabled ? darkModeColors.button : '#e07a5f',
-  };
-
-  const textStyle = {
-    ...styles.buttonText,
-    color: darkModeEnabled ? darkModeColors.buttonText : '#FFF3E0',
-  };
-
-  const pickerStyle = {
-    ...styles.picker,
-    
-    backgroundColor: darkModeEnabled ? darkModeColors.button : '#e07a5f',
-    color: darkModeEnabled ? darkModeColors.text : '#43291f',
+  const renderItem = ({ item, index }) => {
+    const isSelected = selectedIndex === index;
+    const style = isSelected ? styles.selectedItemContainer : styles.itemContainer;
+    return (
+      <View style={style}>
+        <Text style={[styles.itemText, { color: darkModeEnabled ? '#D3D3D3' : pairColor.text }]}>{item.name}</Text>
+      </View>
+    );
   };
 
   return (
-    <SafeAreaView style={containerStyle}>
-      <Text style={titleStyle}>¡Elige una categoría para practicar flashcards!</Text>
-      <Picker
-        style={pickerStyle}
-        selectedValue={selectedCategory}
-        onValueChange={(itemValue) => setSelectedCategory(itemValue)}
-        
-      >
-        {categories.map((category) => (
-          <Picker.Item
-            style={pickerStyle}
-            key={category.id.toString()}
-            label={category.name}
-            value={category.name}
-          />
-        ))}
-      </Picker>
+    <SafeAreaView style={[styles.container, { backgroundColor: darkModeEnabled ? '#121212' : pairColor.background }]}>
+      <Text style={[styles.title, { color: darkModeEnabled ? '#D3D3D3' : pairColor.text }]}>¡Elige una categoría para practicar flashcards!</Text>
+      <FlatList
+        data={categories}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.id}
+        horizontal={true}
+        snapToAlignment="center"
+        snapToInterval={windowWidth}
+        decelerationRate="fast"
+        showsHorizontalScrollIndicator={false}
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={viewabilityConfig}
+        contentContainerStyle={styles.flatListContentContainer}
+      />
+      <Animated.View style={{
+        bottom: 80,
+        transform: [{
+          rotate: rotationAnim.interpolate({
+            inputRange: [-1, 1],
+            outputRange: ['-20deg', '20deg']
+          })
+        }]
+      }}>
+        <MaterialCommunityIcons name="gesture-swipe" size={50} color={darkModeEnabled ? '#D3D3D3' : pairColor.text} />
+      </Animated.View>
       <TouchableOpacity
-        style={buttonStyle}
+        style={[
+          styles.button,
+          { 
+            backgroundColor: darkModeEnabled ? '#121212' : pairColor.background,
+            transform: [{ scale: scaleAnim }]
+          }
+        ]}
         onPress={() => {
-          if (selectedCategory) {
+          if (selectedIndex !== null) {
             navigation.navigate('CheckFlashcardScreen', {
-              category: selectedCategory,
+              category: categories[selectedIndex].name,
             });
           } else {
             alert('Por favor selecciona una categoría.');
           }
         }}
       >
-        <Text style={textStyle}>Comenzar</Text>
+        <Text style={[styles.textStyle, { color: darkModeEnabled ? '#D3D3D3' : pairColor.text }]}>
+          Presiona aquí para comenzar
+        </Text>
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -93,20 +129,48 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    padding: 20,
-  },
-  picker: {
-    width: '80%',
-    height: 50,
+    fontFamily: 'Pagebash',
+    top: 150,
+    fontSize: 30,
+    textAlign: 'center',
   },
   button: {
-    marginTop: 20,
-    padding: 10,
-    borderRadius: 5,
+    bottom: 0,
+    height: '20%',
+    width: '100%',
+    backgroundColor: 'transparent',
+    alignItems: 'center',
+    paddingBottom: 20,
+    paddingTop: 10,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
   },
-  buttonText: {
-    fontSize: 18,
+  textStyle: {
+    top: 60,
+    fontFamily: 'Pagebash',
+    fontSize: 20,
+  },
+  itemContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: Dimensions.get('window').width,
+    top: 70,
+    borderRadius: 10,
+  },
+  selectedItemContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: Dimensions.get('window').width,
+    top: 70,
+    borderRadius: 10,
+    borderColor: '#000',
+  },
+  itemText: {
+    fontFamily: 'Pagebash',
+    fontSize: 50,
+    textAlign: 'center',
+  },
+  flatListContentContainer: {
+    alignItems: 'center',
   },
 });

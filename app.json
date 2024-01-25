@@ -4,11 +4,11 @@
     "slug": "my-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/iconito.png",
     "userInterfaceStyle": "light",
-    "permissions": ["CAMERA_ROLL"],
+    
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/iconito.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -20,12 +20,18 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      }
+        "foregroundImage": "./assets/iconito.png",
+        "backgroundColor": "#FFFFFF"
+      },
+      "package": "com.jakeblack.myapp"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "56aa71c5-769a-4366-a5af-255a9c3b42c0"
+      }
     }
   }
 }

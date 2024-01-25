@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect,useContext } from 'react';
 import { View, TouchableOpacity, Text, StyleSheet, Animated } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSelector, useDispatch } from 'react-redux';
-import { selectDarkMode, toggleDarkMode } from '../darkModeSlice';
+import { selectDarkMode, toggleDarkMode } from '../../redux/darkModeSlice';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '../AuthContext'; 
+import { useAuth,AuthContext } from '../../Auth/AuthContext'; 
 
 const AccountScreen = () => {
   const navigation = useNavigation();
   const dispatch = useDispatch();
   const darkModeEnabled = useSelector(selectDarkMode);
-  const { handleLogout } = useAuth();
-  
+  const {handleLogout} = useAuth();
+
   const [iconOpacity] = useState(new Animated.Value(darkModeEnabled ? 1 : 0));
   const [backgroundColor] = useState(new Animated.Value(darkModeEnabled ? 1 : 0));
 
@@ -36,11 +36,10 @@ const AccountScreen = () => {
 
   const onLogoutPress = async () => {
     await handleLogout();
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'Login' }],
-    });
-  };
+    //console log con el usuario y diciendo que se ha cerrado sesion
+    console.log('Usuario desconectado');
+    
+};
 
   const onToggleDarkMode = () => {
     dispatch(toggleDarkMode());

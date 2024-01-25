@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { useSelector } from 'react-redux'; // Importa useSelector
-import { selectDarkMode } from '../darkModeSlice';// Asegúrate de que la ruta de importación es correcta
+import { selectDarkMode } from '../redux/darkModeSlice';// Asegúrate de que la ruta de importación es correcta
 
 const ExercisesScreen = ({ navigation }) => {
     const darkModeEnabled = useSelector(selectDarkMode); // Usa useSelector para obtener el estado del modo oscuro

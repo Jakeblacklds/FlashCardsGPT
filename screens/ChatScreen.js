@@ -10,7 +10,7 @@ import {
   Animated,
 } from 'react-native';
 import { useSelector } from 'react-redux';
-import { selectDarkMode } from '../darkModeSlice';
+import { selectDarkMode } from '../redux/darkModeSlice';
 import { chatWithGPT } from '../api';
 import * as Animatable from 'react-native-animatable';
 

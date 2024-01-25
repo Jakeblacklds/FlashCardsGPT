@@ -13,8 +13,15 @@ export const COLOR_PAIRS = {
 
 };
 
-export const getRandomColorPair = () => {
+export const getRandomColorPair = (() => {
+  let currentIndex = -1; // Inicializa en -1 para que en la primera llamada comience en 0
   const colorKeys = Object.keys(COLOR_PAIRS);
-  const randomKey = colorKeys[Math.floor(Math.random() * colorKeys.length)];
-  return COLOR_PAIRS[randomKey];
-};
+
+  return () => {
+    // Incrementa el índice y lo ajusta si es necesario
+    currentIndex = (currentIndex + 1) % colorKeys.length;
+
+    // Selecciona el par de colores basado en el índice actual
+    return COLOR_PAIRS[colorKeys[currentIndex]];
+  };
+})();

@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { View, TextInput, TouchableOpacity, FlatList, Text, StyleSheet } from 'react-native';
 import axios from 'axios';
-import { selectDarkMode } from '../darkModeSlice';
+import { selectDarkMode } from '../redux/darkModeSlice';
 import { useSelector } from 'react-redux';
 
 const AddCategory = ({ navigation }) => {
@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Pagebash',
     padding: 10,
     marginVertical: 5,
-    borderColor: '#2E294E ',
+    borderColor: '#2E294E',
     borderWidth: 1,
     borderRadius: 10,
   },

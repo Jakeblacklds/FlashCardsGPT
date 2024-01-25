@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, TextInput, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { useDispatch , useSelector} from 'react-redux';
 import axios from 'axios';
-import { addFlashcard } from '../FlashcardSlice';
+import { addFlashcard } from '../redux/FlashcardSlice';
 
 const AddFlashcard = ({ navigation, route }) => {
   const [english, setEnglish] = useState('');
