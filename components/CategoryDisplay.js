@@ -33,7 +33,7 @@ const CategoryDisplay = ({ categoryToDisplay, categoryImageUri, darkModeEnabled,
       right: 20,
       borderRadius: 20,
       shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
+      
       shadowOpacity: 0.2,
       shadowRadius: 8,
       elevation: 5,

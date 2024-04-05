@@ -43,6 +43,7 @@ const AddGpt = ({ navigation }) => {
         - Las variantes son sinónimos o frases alternativas que se pueden usar para la palabra o frase en inglés.
         - Siempre trata de agregar variantes si existen, y si es posible más de 1
         - No pongas puntos al final de las frases.
+        - Siempre debe de haber una variante 1, pero las variantes 2 y 3 son opcionales.
         - Tampoco agregues un salto de línea al final de cada flashcard, ya que se usará para un json.
         - Sigue estrictamente la estructura mencionada. NO AGREGUES NADA MÁS, ni cambies el orden de la estructura.
         - Proporciona ${numFlashcards} flashcards relacionadas con la categoría ${category}.
@@ -56,6 +57,9 @@ const AddGpt = ({ navigation }) => {
             return flashcards;
         } catch (error) {
             console.error('Error fetching data from OpenAI:', error);
+            console.error(error.response.data);
+            console.error(error.response.status);
+            console.error(error.response.headers);
         } finally {
             isLoading.value = false;
         }

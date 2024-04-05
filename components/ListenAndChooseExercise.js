@@ -13,10 +13,10 @@ const ListenAndChooseExercise = ({ word, onComplete, onMistake, flashcards, colo
   const animationDuration = 800; // Duración de la animación en milisegundos
 
   useEffect(() => {
-    const correctOption = word.spanish;
+    const correctOption = word.english;
     let incorrectOptions = flashcards
       .filter(fc => fc.id !== word.id)
-      .map(fc => fc.spanish)
+      .map(fc => fc.english)
       .sort(() => 0.5 - Math.random())
       .slice(0, 3);
     const optionsArray = [...incorrectOptions, correctOption];
@@ -28,13 +28,13 @@ const ListenAndChooseExercise = ({ word, onComplete, onMistake, flashcards, colo
   const speak = () => {
     Speech.speak(word.spanish, { language: 'es-ES' });
     if (soundAnimationRef.current) {
-      soundAnimationRef.current.play();
+      soundAnimationRef.current.play(0);
     }
   };
 
   const checkAnswer = (option) => {
     setSelectedOption(option);
-    const isAnswerCorrect = option === word.spanish;
+    const isAnswerCorrect = option === word.english;
     setIsCorrect(isAnswerCorrect);
     
     // Esperar a que se establezca el estado antes de intentar reproducir la animación
@@ -49,7 +49,7 @@ const ListenAndChooseExercise = ({ word, onComplete, onMistake, flashcards, colo
       } else {
         onMistake();
       }
-    }, 1000);
+    }, 1300);
   };
 
 

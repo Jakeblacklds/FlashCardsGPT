@@ -52,7 +52,10 @@ const CategoryList = ({
       <Animated.FlatList
         data={categories}
         ListHeaderComponent={() => (
-          <Animated.View style={[styles.headerContainer, animatedHeaderStyle]
+          <Animated.View style={
+            //los estilos deben tambien estar con el darkModeEnabled
+            [styles.headerContainer, animatedHeaderStyle, { backgroundColor: darkModeEnabled ? '#3f37c9' : 'black' }]
+
           }>
             <Text style={[styles.title, { color: darkModeEnabled ? '#D3D3D3' : 'white' }]}>Flashcards</Text>
           </Animated.View>
@@ -85,7 +88,7 @@ const styles = StyleSheet.create({
     top: -30,
     width: 380,
     height: 110,
-    backgroundColor: '#3f37c9',
+ 
   },
   title: {
     fontSize: 35,

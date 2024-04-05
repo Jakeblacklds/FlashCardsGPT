@@ -6,10 +6,10 @@ const LoadingScreen = () => {
     return (
         <View style={styles.container}>
             <LottieView 
-        source={require('../assets/loadimg.json')}
+        source={require('../assets/kid.json')}
         autoPlay
         loop
-        speed={1.4}
+        speed={1}
         style={{ width: 200, height: 200, justifyContent: 'center', alignItems: 'center', }}
       />
         </View>

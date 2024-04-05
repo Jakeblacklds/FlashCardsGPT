@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import {KeyboardAvoidingView , View, Text, TextInput, TouchableOpacity, Alert, StyleSheet } from 'react-native';
+import {KeyboardAvoidingView , View, Text, TextInput, TouchableOpacity, Alert, StyleSheet,Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import { initializeApp } from "firebase/app";

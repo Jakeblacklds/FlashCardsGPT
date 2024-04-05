@@ -37,7 +37,7 @@ const CategoryItem = ({ category, onPress, onDelete }) => {
   const handleGenerateDalleImage = async () => {
     setImagePickerModalVisible(false);
     setIsLoading(true); // Activar el indicador de carga
-    const prompt = `Create a clear,64 bit pixel art image about ${category.name}. Focus on elements that define the category`;
+    const prompt = `Create a clear,64 bit pixel art image about ${category.name}`;
 
     try {
       const imageUrl = await generateImageWithDalle(prompt);
@@ -205,7 +205,6 @@ const styles = StyleSheet.create({
     
 
     shadowColor: 'black',
-    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.25,
     shadowRadius: 10,
     elevation: 12,
@@ -243,10 +242,6 @@ const styles = StyleSheet.create({
     padding: 35,
     alignItems: "center",
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2
-    },
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5

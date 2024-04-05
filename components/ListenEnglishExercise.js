@@ -41,7 +41,7 @@ const ListenEnglishExercise = ({ word, onComplete, onMistake, flashcards, colorP
                 if (soundAnimationRef.current) {
                     soundAnimationRef.current.reset();
                 }
-            }, 800);
+            }, 900);
         }
     };
 

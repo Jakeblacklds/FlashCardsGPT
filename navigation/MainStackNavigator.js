@@ -10,6 +10,7 @@ import SelectCategoryScreen from '../screens/SelectCategoryScreen';
 import CheckFlashcardScreen from '../screens/CheckFlashcardScreen';
 import MemorizeScreen from '../screens/MemorizeScreen';
 
+
 const MainStack = createStackNavigator();
 
 const MainStackNavigator = () => {
