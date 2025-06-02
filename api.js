@@ -1,71 +1,103 @@
+import Constants from 'expo-constants';
 import axios from 'axios';
-import { OPENAI_API_KEY } from '@env';
 import * as FileSystem from 'expo-file-system';
+
+// Obtener la API key desde Constants.expoConfig
+
+const { openaiApiKey  } = Constants.expoConfig?.extra || {};
+
 
 const api = axios.create({
   baseURL: 'https://api.openai.com/v1',
 });
 
-export const chatWithGPT = async (message, mode) => {
-  const previousMessages = [{ role: "user", content: message }];
+export const chatWithGPT = async (conversationHistory, mode) => {
+  const messages = conversationHistory.map(msg => ({
+    
+    role: msg.isUser ? "user" : "assistant",
+    content: msg.text,
+  }));
 
+ 
   
   const response = await api.post('/chat/completions', {
+   
     model: 'gpt-3.5-turbo-1106',
-    messages: previousMessages,
+    messages: messages,
     temperature: mode === 'roleplay' ? 0.7 : 1.0,
     max_tokens: 500,
   }, {
     headers: {
-      'Authorization': `Bearer ${OPENAI_API_KEY}`,
+      'Authorization': `Bearer ${openaiApiKey }`,
       'Content-Type': 'application/json',
+      
     },
   });
   return response.data.choices[0].message.content.trim();
 };
 
-
 export const transcribeAudio = async (audioUri) => {
   const fileInfo = await FileSystem.getInfoAsync(audioUri);
-  if (fileInfo.size > 25 * 1024 * 1024) { // 25 MB
+  if (fileInfo.size > 25 * 1024 * 1024) {
     throw new Error("El archivo excede el límite de tamaño de 25 MB.");
   }
 
-  // Primero, leemos el archivo como un 'blob'
-  const blob = await (await fetch(audioUri)).blob();
-
-  // Creamos un objeto FormData y agregamos el archivo de audio
-  let formData = new FormData();
-  formData.append('file', blob, 'audio.mp3'); // Asegúrate de que la extensión del archivo coincida con el formato real del audio
+  const formData = new FormData();
+  formData.append('file', {
+    uri: audioUri,
+    type: 'audio/m4a',
+    name: 'audio.m4a',
+  });
   formData.append('model', 'whisper-1');
 
-  // Realizamos la solicitud
+  console.log('Enviando archivo de audio a la API de OpenAI');
   const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${OPENAI_API_KEY}`,
+      'Authorization': `Bearer ${openaiApiKey }`,
+      'Content-Type': 'multipart/form-data',
     },
     body: formData,
   });
 
   if (!response.ok) {
-    throw new Error(`Error al transcribir el audio: [Error: HTTP error! status: ${response.status}]`);
+    throw new Error(`Error al transcribir el audio: ${response.statusText}`);
   }
 
   const data = await response.json();
   return data.text;
 };
 
+const base64Encode = (arrayBuffer) => {
+  const base64Chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  const bytes = new Uint8Array(arrayBuffer);
+  let base64 = '';
 
+  for (let i = 0; i < bytes.length; i += 3) {
+    const byte1 = bytes[i];
+    const byte2 = i + 1 < bytes.length ? bytes[i + 1] : 0;
+    const byte3 = i + 2 < bytes.length ? bytes[i + 2] : 0;
 
+    const chunk = (byte1 << 16) | (byte2 << 8) | byte3;
 
+    const char1 = base64Chars.charAt((chunk >> 18) & 0x3F);
+    const char2 = base64Chars.charAt((chunk >> 12) & 0x3F);
+    const char3 = i + 1 < bytes.length ? base64Chars.charAt((chunk >> 6) & 0x3F) : '=';
+    const char4 = i + 2 < bytes.length ? base64Chars.charAt(chunk & 0x3F) : '=';
+
+    base64 += char1 + char2 + char3 + char4;
+  }
+
+  return base64;
+};
 
 export const textToSpeech = async (text, voice = 'alloy') => {
+  console.log('Convirtiendo texto a voz:', text);
   try {
     const response = await fetch('https://api.openai.com/v1/audio/speech', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${openaiApiKey }`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -79,10 +111,16 @@ export const textToSpeech = async (text, voice = 'alloy') => {
       throw new Error('Network response was not ok');
     }
 
-    const blob = await response.blob();
-    const filePath = `${FileSystem.documentDirectory}${Date.now()}.mp3`;
-    await FileSystem.writeAsStringAsync(filePath, await blob.text(), { encoding: FileSystem.EncodingType.Base64 });
-    return filePath;
+    const contentType = response.headers.get('content-type');
+    if (!contentType.includes('audio')) {
+      throw new Error('Response is not an audio file');
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const base64String = base64Encode(arrayBuffer);
+    const uri = `${FileSystem.documentDirectory}${Date.now()}.mp3`;
+    await FileSystem.writeAsStringAsync(uri, base64String, { encoding: FileSystem.EncodingType.Base64 });
+    return uri;
   } catch (error) {
     console.error('Error converting text to speech:', error);
     throw error;
@@ -98,7 +136,7 @@ export const generateImageWithDalle = async (prompt) => {
       size: "1024x1024"
     }, {
       headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${openaiApiKey }`,
         'Content-Type': 'application/json',
       },
     });

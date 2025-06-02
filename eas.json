@@ -1,34 +1,21 @@
 {
-  "cli": {
-    "version": ">= 5.9.3"
-  },
-  "build": {
-    "preview": {
-      "android": {
-        "buildType": "apk",
-        "env": {
-          "OPENAI_API_KEY": "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"
+    "cli": {
+      "version": ">= 5.9.3"
+    },
+    "build": {
+      "preview": {
+        "android": {
+          "buildType": "apk",
+          "env": {
+            "ENVIRONMENT": "preview"
+          }
         }
-      }
-    },
-    "preview2": {
-      "android": {
-        "gradleCommand": ":app:assembleRelease",
+      },
+      "production": {
         "env": {
-          "OPENAI_API_KEY": "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"
+          "ENVIRONMENT": "production"
         }
-      }
-    },
-    "preview3": {
-      "developmentClient": true,
-      "env": {
-        "OPENAI_API_KEY": "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"
-      }
-    },
-    "production": {
-      "env": {
-        "OPENAI_API_KEY": "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"
       }
     }
   }
-}
+  

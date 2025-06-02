@@ -1,221 +1,248 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSelector } from 'react-redux';
-import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
-import CategoriesScreen from '../screens/CategoriesScreen/CategoriesScreen';
-import ChatScreen from '../screens/ChatScreen';
-import ExercisesScreen from '../screens/ExercisesScreen';
-import AccountScreen from '../screens/AccountScreen/AccountScreen';
-import LottieView from 'lottie-react-native';
+import { View, Platform, Dimensions, StyleSheet } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+} from 'react-native-reanimated';
 import { selectDarkMode } from '../redux/darkModeSlice';
 
+import CategoriesScreen from '../Screens/Flashcards/CategoriesScreen/CategoriesScreen';
+import ChatScreen from '../Screens/Roleplay/ChatScreen';
+import ExercisesScreen from '../Screens/Learn/ExercisesScreen';
+import AccountScreen from '../Screens/Account/AccountScreen/AccountScreen';
+
+// ICONOS FLASHCARDS
+const flashcards_icons = {
+  light: {
+    selected: require('../assets/img/sections/flashcards/flashcards_light_selected.png'),
+    unselected: require('../assets/img/sections/flashcards/flashcards_light_unselected.png'),
+  },
+  dark: {
+    selected: require('../assets/img/sections/flashcards/flashcards_dark_selected.png'),
+    unselected: require('../assets/img/sections/flashcards/flashcards_dark_unselected.png'),
+  },
+};
+// ICONOS GRAMMAR
+const grammar_icons = {
+  light: {
+    selected: require('../assets/img/sections/grammar/grammar_light_selected.png'),
+    unselected: require('../assets/img/sections/grammar/grammar_light_unselected.png'),
+  },
+  dark: {
+    selected: require('../assets/img/sections/grammar/grammar_dark_selected.png'),
+    unselected: require('../assets/img/sections/grammar/grammar_dark_unselected.png'),
+  },
+};
+// ICONOS CHAT
+const chat_icons = {
+  light: {
+    selected: require('../assets/img/sections/chat/chat_light_selected.png'),
+    unselected: require('../assets/img/sections/chat/chat_light_unselected.png'),
+  },
+  dark: {
+    selected: require('../assets/img/sections/chat/chat_dark_selected.png'),
+    unselected: require('../assets/img/sections/chat/chat_dark_unselected.png'),
+  },
+};
+// ICONOS ACCOUNT
+const account_icons = {
+  light: {
+    selected: require('../assets/img/sections/account/account_hex_light_selected.png'),
+    unselected: require('../assets/img/sections/account/account_hex_light_unselected.png'),
+  },
+  dark: {
+    selected: require('../assets/img/sections/account/account_hex_dark_selected.png'),
+    unselected: require('../assets/img/sections/account/account_hex_dark_unselected.png'),
+  },
+};
+
 const Tab = createBottomTabNavigator();
+const { width } = Dimensions.get('window');
 
-function MyTabBar({ state, descriptors, navigation }) {
-    const darkModeEnabled = useSelector(selectDarkMode);
-    const scales = state.routes.map(() => useSharedValue(0.95));
-    const opacities = state.routes.map(() => useSharedValue(0.5));
+// ANIMATED ICON with crossfade
+const AnimatedTabBarIcon = ({ focused, darkMode, icons }) => {
+  // Animated values con valores iniciales adaptados al estado focused
+  const scale = useSharedValue(focused ? 1.12 : 1);
+  const selectedOpacity = useSharedValue(focused ? 1 : 0);
+  const unselectedOpacity = useSharedValue(focused ? 0 : 1);
 
-    useEffect(() => {
-        state.routes.forEach((route, index) => {
-            const isFocused = state.index === index;
-            scales[index].value = withTiming(isFocused ? 1.1 : 0.95, { duration: 200 });
-            opacities[index].value = withTiming(isFocused ? 1 : 0.7, { duration: 200 });
-        });
-    }, [state.index, state.routes]);
 
-    return (
-        <View style={{ backgroundColor: darkModeEnabled ? '#121212' : '#F5F5F5' }}>
-            <View style={{
-                flexDirection: 'row',
-                
-                paddingHorizontal: 20,
-                height: 70,
-                backgroundColor: darkModeEnabled ? '#121212' : '#3f37c9',
+  // Animación del fondo usando un enfoque más directo
+  const bgStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: scale.value }],
+      backgroundColor: darkMode 
+        ? `rgba(247, 37, 133, ${selectedOpacity.value * 0.12})` 
+        : `rgba(30, 30, 30, ${selectedOpacity.value * 0.09})`,
+    };
+  });
 
-            }}>
-                {state.routes.map((route, index) => {
-                    const { options } = descriptors[route.key];
-                    const isFocused = state.index === index;
+  // Estilos para las imágenes
+  const selectedIconStyle = useAnimatedStyle(() => ({
+    opacity: selectedOpacity.value,
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+  }));
+  
+  const unselectedIconStyle = useAnimatedStyle(() => ({
+    opacity: unselectedOpacity.value,
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+  }));
 
-                    const animatedStyles = useAnimatedStyle(() => {
-                        return {
-                            transform: [{ scale: scales[index].value }],
-                            opacity: opacities[index].value,
-                        };
-                    });
+  const iconSelected = darkMode ? icons.dark.selected : icons.light.selected;
+  const iconUnselected = darkMode ? icons.dark.unselected : icons.light.unselected;
 
-                    const onPress = () => {
-                        const event = navigation.emit({
-                            type: 'tabPress',
-                            target: route.key,
-                        });
-
-                        if (!isFocused && !event.defaultPrevented) {
-                            navigation.navigate(route.name);
-                        }
-                    };
-
-                    return (
-                        <TouchableOpacity
-                            key={route.key}
-                            onPress={onPress}
-                            style={{ flex: 1,  }}
-                            accessibilityRole="button"
-                        >
-                            <Animated.View style={[animatedStyles]}>
-                                {options.tabBarIcon({ focused: isFocused, })}
-                                <Text style={{ textAlign: 'center', color: isFocused ? '#F3F9E3' : 'white', fontSize: 10, top: 50,}}>
-                                    {options.title}
-                                </Text>
-                            </Animated.View>
-                        </TouchableOpacity>
-                    );
-                })}
-            </View>
-        </View>
-    );
-}
-
+  return (
+    <View style={styles.tabItemContainer}>
+      <Animated.View style={[styles.iconContainer, bgStyle]}>
+        <Animated.Image
+          source={iconUnselected}
+          style={[styles.icon, unselectedIconStyle]}
+          resizeMode="contain"
+        />
+        <Animated.Image
+          source={iconSelected}
+          style={[styles.icon, selectedIconStyle]}
+          resizeMode="contain"
+        />
+      </Animated.View>
+      {focused && (
+        <View
+          style={[
+            styles.activeIndicator,
+            { backgroundColor: darkMode ? '#f72585' : '#6a6ef0' },
+          ]}
+        />
+      )}
+    </View>
+  );
+};
 
 const TabNavigator = () => {
-    return (
-        <Tab.Navigator
-            initialRouteName="Flashcards"
-            tabBar={props => <MyTabBar {...props} />}
-        >
-            <Tab.Screen
-                name="Flashcards"
-                component={CategoriesScreen}
-                options={{
-                    headerShown: false,
-                    title: 'FlashCards',
-                    tabBarIcon: ({ focused }) => {
-                        const animationRef = useRef(null);
-                        useEffect(() => {
-                            if (focused) {
-                                animationRef.current?.play();
-                            } else {
-                                animationRef.current?.reset();
-                            }
-                        }, [focused]);
-                        return (
-                            <LottieView
-                                ref={animationRef}
-                                source={require('../assets/book.json')}
-                                loop={false}
-                                speed={2}
-                                style={{ 
-                                    width: 110, 
-                                    height: 110,
-                                    position: 'absolute',
-                                    bottom: -70,
-                                    left: '-15%',
-                                }}
-                            />
-                        );
-                    },
-                }}
-            />
-            <Tab.Screen
-                name="Chat"
-                component={ChatScreen}
-                options={{
-                    headerShown: false,
-                    title: 'Chat',
-                    tabBarIcon: ({ focused }) => {
-                        const animationRef = useRef(null);
-                        useEffect(() => {
-                            if (focused) {
-                                animationRef.current?.play(0, 85);
-                            } else {
-                                animationRef.current?.play(85, 160);
-                            }
-                        }, [focused]);
-                        return (
-                            <LottieView
-                                ref={animationRef}
-                                source={require('../assets/robot.json')}
-                                loop={false}
-                                speed={2}
-                                style={{ width: 80, 
-                                        height: 60, 
-                                        position: 'absolute',
-                                        bottom: -44,
-                                        left: '1%',
-                                    }}
-                            />
-                        );
-                    },
-                }}
-            />
-            <Tab.Screen
-                name="Exercises"
-                component={ExercisesScreen}
-                options={{
-                    headerShown: false,
-                    title: 'Exercises',
-                    tabBarIcon: ({ focused }) => {
-                        const animationRef = useRef(null);
-                        useEffect(() => {
-                            if (focused) {
-                                animationRef.current?.play(0, 75);
-                            } else {
-                                animationRef.current?.play(75, 100);
-                            }
-                        }, [focused]);
-                        return (
-                            <LottieView
-                                ref={animationRef}
-                                source={require('../assets/books.json')}
-                                loop={false}
-                                speed={4}
-                                style={{ width: 70,
-                                        height: 50, 
-                                        position: 'absolute',
-                                        bottom: -40,
-                                        left: '7%',    
-                                    }}
-                            />
-                        );
-                    },
-                }}
-            />
-            <Tab.Screen
-                name="Account"
-                component={AccountScreen}
-                options={{
-                    headerShown: false,
-                    title: 'Account',
-                    tabBarIcon: ({ focused }) => {
-                        const animationRef = useRef(null);
-                        useEffect(() => {
-                            if (focused) {
-                                animationRef.current?.play(0, 100);
-                            } else {
-                                animationRef.current?.play(100, 120);
-                            }
-                        }, [focused]);
-                        return (
-                            <LottieView
-                                ref={animationRef}
-                                source={require('../assets/profile.json')}
-                                loop={false}
-                                speed={2}
-                                style={{ width: 80, 
-                                        height: 60,
-                                        position: 'absolute',
-                                        bottom: -45,
-                                        left: '2%',   
-                                    }}
-                            />
-                        );
-                    },
-                }}
-            />
-        </Tab.Navigator>
-    );
+  const darkModeEnabled = useSelector(selectDarkMode);
+
+  return (
+    <View style={{ flex: 1, backgroundColor: darkModeEnabled ? '#121212' : '#F8F8F8' }}>
+      <Tab.Navigator
+        initialRouteName="Flashcards"
+        screenOptions={{
+          headerShown: false,
+          animation: 'fade',
+
+          tabBarShowLabel: false,
+          tabBarStyle: {
+            ...styles.tabBar,
+            backgroundColor: darkModeEnabled ? '#18181c' : '#fff', // FONDO SÓLIDO
+            borderTopWidth: 0,
+          },
+        }}
+      >
+        <Tab.Screen
+          name="Flashcards"
+          component={CategoriesScreen}
+          options={{
+            tabBarIcon: ({ focused }) => (
+              <AnimatedTabBarIcon
+                focused={focused}
+                darkMode={darkModeEnabled}
+                icons={flashcards_icons}
+              />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="Grammar"
+          component={ExercisesScreen}
+          options={{
+            tabBarIcon: ({ focused }) => (
+              <AnimatedTabBarIcon
+                focused={focused}
+                darkMode={darkModeEnabled}
+                icons={grammar_icons}
+              />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="Chat"
+          component={ChatScreen}
+          options={{
+            tabBarIcon: ({ focused }) => (
+              <AnimatedTabBarIcon
+                focused={focused}
+                darkMode={darkModeEnabled}
+                icons={chat_icons}
+              />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="Account"
+          component={AccountScreen}
+          options={{
+            tabBarIcon: ({ focused }) => (
+              <AnimatedTabBarIcon
+                focused={focused}
+                darkMode={darkModeEnabled}
+                icons={account_icons}
+              />
+            ),
+          }}
+        />
+      </Tab.Navigator>
+    </View>
+  );
 };
+
+const styles = StyleSheet.create({
+  tabBar: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 28 : 16,
+    left: 20,
+    right: 20,
+    height: 70,
+    borderRadius: 35,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    elevation: 8,
+    borderTopWidth: 0,
+    paddingBottom: 0,
+    paddingTop: 0,
+    zIndex: 2,
+    overflow: 'hidden',
+  },
+  tabItemContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 70,
+    flex: 1,
+  },
+  iconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 35,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'visible',
+  },
+  icon: {
+    width: 48,
+    height: 48,
+  },
+  activeIndicator: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    marginTop: 4,
+  },
+});
 
 export default TabNavigator;

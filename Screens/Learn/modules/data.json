@@ -1,0 +1,144 @@
+{
+ 
+  "modules": [
+    {
+      "key": "Module 1",
+      "title": "Meeting Someone",
+      "description": "Learn how to meet new people",
+      "subsections": [
+        {
+          "title": "Introduction",
+          "exercises": [
+            {
+              "id": 1,
+              "type": "Choose the correct option",
+              "question": "Choose the correct form of the verb: Yo me ___ Juan.",
+              "options": [
+                {"text": "llamo", "isCorrect": true},
+                {"text": "llamas", "isCorrect": false},
+                {"text": "llama", "isCorrect": false}
+              ]
+            },
+            {
+              "id": 2,
+              "type": "Choose the correct option",
+              "question": "How do you say 'Nice to meet you' in Spanish?",
+              "options": [
+                {"text": "Mucho gusto", "isCorrect": true},
+                {"text": "Hola", "isCorrect": false},
+                {"text": "Adios", "isCorrect": false}
+              ]
+            },
+            {
+              "id": 3,
+              "type": "Choose the correct option",
+              "question": "How would you respond to '¿Cómo estás?'",
+              "options": [
+                {"text": "Estoy bien", "isCorrect": true},
+                {"text": "Adios", "isCorrect": false},
+                {"text": "Hola", "isCorrect": false}
+              ]
+            },
+            {
+              "id": 4,
+              "type": "Complete the sentence",
+              "question": "Complete the sentence: Yo ___ a la escuela todos los días.",
+              "correct_answer": "voy"
+            },
+            {
+              "id": 5,
+              "type": "Translate the phrase",
+              "phrase": "Good morning",
+              "correct_answer": "Buenos días"
+            }
+          ]
+        },
+      
+    
+  
+
+
+        {
+          "title": "Practice",
+          "exercises": [
+            {
+              "id": 1,
+              "type": "Listen and Repeat the phrase",
+              "phrase": "Hello, my name is John."
+            },
+            {
+              "id": 2,
+              "type": "Listen and Repeat the phrase",
+              "phrase": "Nice to meet you."
+            }
+          ]
+        },
+        {
+          "title": "Roleplay",
+          "exercises": [
+            {
+              "id": 1,
+              "type": "Try to talk with me",
+              "prompt": "You are meeting someone for the first time. Introduce yourself and ask them about their day."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "Module 2",
+      "title": "Ser and Estar",
+      "description": "Learn the difference between ser and estar",
+      "subsections": [
+        {
+          "title": "Introduction",
+          "exercises": [
+            {
+              "id": 1,
+              "type": "Choose the correct option",
+              "question": "Choose the correct form of 'to be' for the sentence: She ___ happy.",
+              "options": [
+                {"text": "is (ser)", "isCorrect": false},
+                {"text": "is (estar)", "isCorrect": true}
+              ]
+            },
+            {
+              "id": 2,
+              "type": "Choose the correct option",
+              "question": "Choose the correct form of 'to be' for the sentence: He ___ a doctor.",
+              "options": [
+                {"text": "is (ser)", "isCorrect": true},
+                {"text": "is (estar)", "isCorrect": false}
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Practice",
+          "exercises": [
+            {
+              "id": 1,
+              "type": "Listen and Repeat the sentence",
+              "phrase": "I am happy."
+            },
+            {
+              "id": 2,
+              "type": "Listen and Repeat the sentence",
+              "phrase": "He is a teacher."
+            }
+          ]
+        },
+        {
+          "title": "Roleplay",
+          "exercises": [
+            {
+              "id": 1,
+              "type": "Try to talk with me",
+              "prompt": "Describe your feelings and your profession using 'ser' and 'estar'."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

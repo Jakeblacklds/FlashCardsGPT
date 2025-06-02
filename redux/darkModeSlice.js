@@ -1,10 +1,14 @@
-
 import { createSlice } from '@reduxjs/toolkit';
+import { Appearance } from 'react-native';
+
+const getPreferredColorScheme = () => {
+  return Appearance.getColorScheme() === 'dark';
+};
 
 export const darkModeSlice = createSlice({
   name: 'darkMode',
   initialState: {
-    enabled: false,
+    enabled: getPreferredColorScheme(),
   },
   reducers: {
     toggleDarkMode: (state) => {
@@ -14,8 +18,5 @@ export const darkModeSlice = createSlice({
 });
 
 export const { toggleDarkMode } = darkModeSlice.actions;
-
 export const selectDarkMode = (state) => state.darkMode.enabled;
-
 export default darkModeSlice.reducer;
-

@@ -1,15 +1,14 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import TabNavigator from './TabNavigator';
-import FlashcardList from '../screens/FlashcardList';
-import AddFlashcard from '../actions/AddFlashcard';
-import AddCategory from '../actions/AddCategory';
-import VocabularyExercisesScreen from '../screens/VocabularyExercisesScreen/VocabularyExercisesScreen';
-import AddGpt from '../actions/AddGpt';
-import SelectCategoryScreen from '../screens/SelectCategoryScreen';
-import CheckFlashcardScreen from '../screens/CheckFlashcardScreen';
-import MemorizeScreen from '../screens/MemorizeScreen';
-
+import FlashcardList from '../Screens/Flashcards/CategoriesScreen/FlashcardList/FlashcardList';
+import AddFlashcard from '../Screens/Flashcards/CategoriesScreen/FlashcardList/components/AddFlashcard';
+import AddCategory from '../Screens/Flashcards/CategoriesScreen/components/AddCategory'
+import VocabularyExercisesScreen from '../Screens/Flashcards/CategoriesScreen/FlashcardList/VocabExercises/VocabularyExercisesScreen/VocabularyExercisesScreen';
+import AddGpt from '../Screens/Flashcards/CategoriesScreen/components/AddGpt/AddGpt';
+import MemorizeScreen from '../Screens/Flashcards/CategoriesScreen/FlashcardList/MemorizeScreen/MemorizeScreen';
+import ModuleScreen from '../Screens/Learn/modules/ModuleScreen';
+import SubSectionScreen from '../Screens/Learn/modules/SubSectionScreen';
 
 const MainStack = createStackNavigator();
 
@@ -23,8 +22,8 @@ const MainStackNavigator = () => {
       <MainStack.Screen name="AddCategory" component={AddCategory} options={{ headerShown: false }} />
       <MainStack.Screen name="Memorize" component={MemorizeScreen} options={{ headerShown: false }} />
       <MainStack.Screen name="AddGpt" component={AddGpt} options={{ headerShown: false }} />
-      <MainStack.Screen name="SelectCategoryScreen" component={SelectCategoryScreen} options={{ headerShown: false }} />
-      <MainStack.Screen name="CheckFlashcardScreen" component={CheckFlashcardScreen} options={{ headerShown: false }} />
+      <MainStack.Screen name="ModuleScreen" component={ModuleScreen} options={{ headerShown: false }} />
+      <MainStack.Screen name="SubsectionScreen" component={SubSectionScreen} options={{ headerShown: false }} />
     </MainStack.Navigator>
   );
 };
