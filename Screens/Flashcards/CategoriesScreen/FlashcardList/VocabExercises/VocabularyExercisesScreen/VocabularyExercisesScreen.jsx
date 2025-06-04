@@ -275,7 +275,7 @@ const VocabularyExercisesScreen = ({ route, navigation }) => {
             >
             {darkModeEnabled && <View style={dynamicStyles.darkModeOverlayCircle} />}
 
-                <Text style={dynamicStyles.floatingButtonText}>{showMemorizedWords ? 'Ocultar' : '  ?  '}</Text>
+                <Text style={dynamicStyles.floatingButtonText}>{showMemorizedWords ? 'Ocultar' : 'Mostrar'}</Text>
             </TouchableOpacity>
         </View>
     );
