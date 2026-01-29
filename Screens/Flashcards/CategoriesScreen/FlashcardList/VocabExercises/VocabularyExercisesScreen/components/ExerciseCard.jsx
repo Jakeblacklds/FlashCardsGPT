@@ -151,78 +151,82 @@ const ExerciseCard = ({
       
       <Animated.View 
         layout={Layout.springify().damping(15)}
-        style={[
-          styles.card,
-          { backgroundColor: cardBg },
-          cardAnimatedStyle
-        ]}
+        style={{ flex: 1 }}
       >
-        <View style={styles.cardHeader}>
-          <View style={styles.wordInfo}>
-            <Text style={[styles.wordLabel, { color: darkModeEnabled ? '#888' : '#666' }]}>
-              PRACTICE MODE
-            </Text>
-          </View>
-          <MasteryBadge level={masteryLevel} />
-        </View>
-        
-        <View style={[styles.divider, { backgroundColor: accentColor, opacity: 0.3 }]} />
-        
         <Animated.View 
-          key={exerciseType + '-' + (word?.id || 'new')}
-          entering={FadeIn.duration(400)}
-          style={styles.exerciseContent}
+          style={[
+            styles.card,
+            { backgroundColor: cardBg },
+            cardAnimatedStyle
+          ]}
         >
-          {children}
-        </Animated.View>
-
-        {showFeedback && (
-          <Animated.View style={[
-            styles.feedbackOverlay,
-            {
-              backgroundColor: isCorrect 
-                ? 'rgba(74, 222, 128, 0.98)' 
-                : 'rgba(239, 68, 68, 0.98)',
-            },
-            feedbackAnimatedStyle
-          ]}>
-            {isCorrect && (
-              <LottieView
-                ref={confettiRef}
-                source={require('../../../../../../../assets/congrats.json')}
-                loop={false}
-                style={styles.confetti}
-              />
-            )}
-
-            <Animated.View 
-               entering={SlideInUp.springify().damping(12)}
-               style={styles.feedbackContent}
-            >
-              <View style={styles.feedbackIconCircle}>
-                <FontAwesome5 
-                    name={isCorrect ? "check" : "times"} 
-                    size={40} 
-                    color="#FFF" 
-                />
-              </View>
-              <Text style={styles.feedbackTitle}>{isCorrect ? 'EXCELLENT!' : 'KEEP GOING!'}</Text>
-              {!isCorrect && (
-                <View style={styles.answerReveal}>
-                  <Text style={styles.revealLabel}>CORRECT ANSWER:</Text>
-                  <Text style={styles.revealText}>{word?.spanish}</Text>
-                </View>
-              )}
-              
-              <View style={styles.autoProgressContainer}>
-                <Animated.View 
-                  style={[styles.autoProgressBar, progressStyle]} 
-                />
-              </View>
-              <Text style={styles.autoProgressText}>Next exercise in 1.5s</Text>
-            </Animated.View>
+          <View style={styles.cardHeader}>
+            <View style={styles.wordInfo}>
+              <Text style={[styles.wordLabel, { color: darkModeEnabled ? '#888' : '#666' }]}>
+                PRACTICE MODE
+              </Text>
+            </View>
+            <MasteryBadge level={masteryLevel} />
+          </View>
+          
+          <View style={[styles.divider, { backgroundColor: accentColor, opacity: 0.3 }]} />
+          
+          <Animated.View 
+            key={exerciseType + '-' + (word?.id || 'new')}
+            entering={FadeIn.duration(400)}
+            style={styles.exerciseContent}
+          >
+            {children}
           </Animated.View>
-        )}
+
+          {showFeedback && (
+            <Animated.View style={[
+              styles.feedbackOverlay,
+              {
+                backgroundColor: isCorrect 
+                  ? 'rgba(74, 222, 128, 0.98)' 
+                  : 'rgba(239, 68, 68, 0.98)',
+              },
+              feedbackAnimatedStyle
+            ]}>
+              {isCorrect && (
+                <LottieView
+                  ref={confettiRef}
+                  source={require('../../../../../../../assets/congrats.json')}
+                  loop={false}
+                  style={styles.confetti}
+                />
+              )}
+
+              <Animated.View 
+                 entering={SlideInUp.springify().damping(12)}
+                 style={styles.feedbackContent}
+              >
+                <View style={styles.feedbackIconCircle}>
+                  <FontAwesome5 
+                      name={isCorrect ? "check" : "times"} 
+                      size={40} 
+                      color="#FFF" 
+                  />
+                </View>
+                <Text style={styles.feedbackTitle}>{isCorrect ? 'EXCELLENT!' : 'KEEP GOING!'}</Text>
+                {!isCorrect && (
+                  <View style={styles.answerReveal}>
+                    <Text style={styles.revealLabel}>CORRECT ANSWER:</Text>
+                    <Text style={styles.revealText}>{word?.spanish}</Text>
+                  </View>
+                )}
+                
+                <View style={styles.autoProgressContainer}>
+                  <Animated.View 
+                    style={[styles.autoProgressBar, progressStyle]} 
+                  />
+                </View>
+                <Text style={styles.autoProgressText}>Next exercise in 1.5s</Text>
+              </Animated.View>
+            </Animated.View>
+          )}
+        </Animated.View>
       </Animated.View>
       
       <View style={styles.bottomDecoration}>
