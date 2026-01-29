@@ -1,19 +1,39 @@
-import React, { useState } from 'react';
-import { FlatList, Text, View, StyleSheet, TouchableOpacity, Modal, Platform, Dimensions } from 'react-native';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import {
+  FlatList,
+  Text,
+  View,
+  StyleSheet,
+  TouchableOpacity,
+  Modal,
+  Platform,
+  Dimensions
+} from 'react-native';
+import { useSelector } from 'react-redux';
 import CategoryItem from './CategoryItem';
+import PendingCategoryItem from './PendingCategoryItem';
 import RecentFlashcards from '../RecentFlashcards/RecentFlashcards';
-import { AntDesign, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context'; // <-- Importa este hook
+import GameBoyFrame from './GameBoyFrame';
+import RetroButton, { RetroIconButton } from './RetroButton';
+import PixelDivider from './PixelDivider';
+import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { selectPendingCategories } from '../../../../redux/FlashcardSlice';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
+
+// --- CÁLCULO DE GRID ---
+const NUM_COLUMNS = 2;
+const SCREEN_PADDING = 16;
+const ITEM_GAP = 12;
+const TOTAL_AVAILABLE_WIDTH = width - (SCREEN_PADDING * 2) - (ITEM_GAP * (NUM_COLUMNS - 1));
+const CARD_WIDTH = Math.floor(TOTAL_AVAILABLE_WIDTH / NUM_COLUMNS);
+const CARD_HEIGHT = CARD_WIDTH * 1.3;
+
 const scale = width / 375;
 function normalize(size) {
   const newSize = size * scale;
-  if (Platform.OS === 'ios') {
-    return Math.round(newSize);
-  } else {
-    return Math.round(newSize) - 2;
-  }
+  return Platform.OS === 'ios' ? Math.round(newSize) : Math.round(newSize) - 2;
 }
 
 const CategoryList = ({
@@ -27,62 +47,135 @@ const CategoryList = ({
   navigateToAddGPT,
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
+  const insets = useSafeAreaInsets();
 
-  const insets = useSafeAreaInsets(); // <-- Hook para conocer el notch
+  // Get pending categories from Redux
+  const pendingCategories = useSelector(selectPendingCategories);
 
-  const toggleModal = () => setModalVisible(!modalVisible);
+  const toggleModal = useCallback(() => setModalVisible(!modalVisible), [modalVisible]);
+
+  // Combine pending + regular categories for the FlatList
+  const combinedData = useMemo(() => {
+    const pendingItems = (pendingCategories || []).map(p => ({ ...p, isPending: true }));
+    const regularItems = (categories || []).map(c => ({ ...c, isPending: false }));
+    return [...pendingItems, ...regularItems];
+  }, [pendingCategories, categories]);
+
+  const renderHeader = useCallback(() => (
+    <View>
+      {/* Recent Flashcards - fuera del frame */}
+      <View style={{ marginTop: insets.top + 10 }}>
+        <RecentFlashcards
+          recentCategories={recentCategories}
+          onNavigateToFlashcardList={navigateToFlashcardList}
+        />
+      </View>
+
+      {/* Divider decorativo entre secciones */}
+      <PixelDivider
+        text="CARTRIDGES"
+        darkMode={darkModeEnabled}
+      />
+
+      {/* Header con título y botón */}
+      <View style={styles.headerContainer}>
+        <View style={styles.titleSection}>
+          <View style={styles.titleDecoration}>
+            <View style={[styles.decorPixel, {
+              backgroundColor: darkModeEnabled ? '#4ADE80' : '#306230'
+            }]} />
+            <View style={[styles.decorPixel, {
+              backgroundColor: darkModeEnabled ? '#4ADE80' : '#306230'
+            }]} />
+          </View>
+          <View>
+            <Text style={[styles.categoriesTitle, {
+              color: darkModeEnabled ? '#FFF' : '#191A1F'
+            }]}>
+              COLLECTION
+            </Text>
+            <View style={styles.subtitleRow}>
+              <View style={[styles.subtitleDot, {
+                backgroundColor: darkModeEnabled ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.3)'
+              }]} />
+              <Text style={[styles.subtitle, {
+                color: darkModeEnabled ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)'
+              }]}>
+                {categories.length} GAME{categories.length !== 1 ? 'S' : ''}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        <RetroIconButton
+          onPress={toggleModal}
+          icon={Ionicons}
+          iconName="add"
+          iconSize={24}
+          color={darkModeEnabled ? '#4ADE80' : '#6366F1'}
+          darkMode={darkModeEnabled}
+        />
+      </View>
+
+      <PixelDivider darkMode={darkModeEnabled} variant="dots" />
+    </View>
+  ), [recentCategories, darkModeEnabled, categories.length, toggleModal, navigateToFlashcardList, insets.top]);
+
+  const renderItem = useCallback(({ item }) => {
+    // Render PendingCategoryItem for pending items
+    if (item.isPending) {
+      return (
+        <PendingCategoryItem
+          pendingCategory={item}
+          onRetry={(pending) => {
+            // TODO: Implement retry logic
+            console.log('Retry:', pending);
+          }}
+          onCancel={(pending) => {
+            console.log('Cancelled:', pending);
+          }}
+        />
+      );
+    }
+
+    // Render regular CategoryItem
+    return (
+      <CategoryItem
+        category={item}
+        onPress={navigateToFlashcardList}
+        onDelete={handleDeleteCategory}
+        onImagePick={handleImagePick}
+        initialColorPair={item.colorPair}
+        darkModeEnabled={darkModeEnabled}
+        cardWidth={CARD_WIDTH}
+        cardHeight={CARD_HEIGHT}
+      />
+    );
+  }, [navigateToFlashcardList, handleDeleteCategory, handleImagePick, darkModeEnabled]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: darkModeEnabled ? '#121212' : '#f7f7f7' }}>
+    <View style={{ flex: 1, backgroundColor: darkModeEnabled ? '#0D0D0E' : '#F5F5F7' }}>
       <FlatList
-        data={categories}
-        ListHeaderComponent={() => (
-          <>
-            <View style={{ marginTop: insets.top + 8 }}>
-              <RecentFlashcards
-                recentCategories={recentCategories}
-                onNavigateToFlashcardList={navigateToFlashcardList}
-              />
-              <View style={styles.titleRow}>
-                <Text
-                  style={[
-                    styles.categoriesTitle,
-                    { color: darkModeEnabled ? '#FFF' : '#191A1F' }
-                  ]}
-                >
-                  Categories
-                </Text>
-                <TouchableOpacity
-                  style={[
-                    styles.plusButton,
-                    {
-                      backgroundColor: darkModeEnabled ? '#23262A' : '#fff',
-                      shadowColor: darkModeEnabled ? '#23262A' : '#000',
-                    },
-                  ]}
-                  onPress={toggleModal}
-                  activeOpacity={0.85}
-                >
-                  <AntDesign name="plus" size={normalize(28)} color={darkModeEnabled ? '#fff' : '#191A1F'} />
-                </TouchableOpacity>
-              </View>
-            </View>
-          </>
-        )}
-        renderItem={({ item }) => (
-          <CategoryItem
-            category={item}
-            onPress={navigateToFlashcardList}
-            onDelete={handleDeleteCategory}
-            onImagePick={handleImagePick}
-            colorPair={item.colorPair}
-            darkModeEnabled={darkModeEnabled}
-          />
-        )}
-        keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={styles.listContainer}
-        numColumns={1}
+        data={combinedData}
+        ListHeaderComponent={renderHeader}
+        keyExtractor={(item) => item.isPending ? item.tempId : item.id.toString()}
+        extraData={[darkModeEnabled, recentCategories, pendingCategories]}
+        numColumns={NUM_COLUMNS}
+        contentContainerStyle={{
+          paddingHorizontal: SCREEN_PADDING,
+          paddingBottom: 100,
+        }}
+        columnWrapperStyle={{
+          gap: ITEM_GAP,
+        }}
+        ItemSeparatorComponent={() => <View style={{ height: ITEM_GAP }} />}
+        renderItem={renderItem}
         showsVerticalScrollIndicator={false}
+        removeClippedSubviews={true} // Cambiado a true para mejor performance
+        maxToRenderPerBatch={6} // Reducido para no saturar el hilo
+        updateCellsBatchingPeriod={100}
+        initialNumToRender={8}
+        windowSize={5}
       />
 
       <Modal
@@ -91,39 +184,67 @@ const CategoryList = ({
         visible={modalVisible}
         onRequestClose={toggleModal}
       >
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={toggleModal}>
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={toggleModal}
+        >
           <View style={[
             styles.modalContent,
-            { backgroundColor: darkModeEnabled ? '#23262A' : '#fff' }
+            { backgroundColor: darkModeEnabled ? '#1A1C1E' : '#F5F5F7' }
           ]}>
-            <TouchableOpacity
-              style={styles.modalButton}
-              onPress={() => {
-                navigateToAddCategory();
-                toggleModal();
-              }}
-            >
-              <AntDesign name="plus" size={normalize(22)} color={darkModeEnabled ? '#fff' : '#23262A'} />
-              <Text style={[
-                styles.modalText,
-                { color: darkModeEnabled ? '#E0E0E0' : '#23262A' }
-              ]}>
-                Agregar Categoría
+            <View style={[
+              styles.modalHeader,
+              { borderBottomColor: darkModeEnabled ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }
+            ]}>
+              <FontAwesome5
+                name="plus-circle"
+                size={20}
+                color={darkModeEnabled ? '#4ADE80' : '#6366F1'}
+              />
+              <Text style={[styles.modalTitle, { color: darkModeEnabled ? '#FFF' : '#191A1F' }]}>
+                NEW CONTENT
               </Text>
-            </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalBody}>
+              <RetroButton
+                text="ADD CATEGORY MANUALLY"
+                onPress={() => {
+                  toggleModal();
+                  navigateToAddCategory();
+                }}
+                color={darkModeEnabled ? '#4ADE80' : '#6366F1'}
+                darkMode={darkModeEnabled}
+                icon="plus"
+                style={styles.modalButton}
+              />
+
+              <View style={styles.modalSeparator}>
+                <View style={[styles.sepLine, { backgroundColor: darkModeEnabled ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]} />
+                <Text style={[styles.sepText, { color: darkModeEnabled ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }]}>OR</Text>
+                <View style={[styles.sepLine, { backgroundColor: darkModeEnabled ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]} />
+              </View>
+
+              <RetroButton
+                text="GENERATE WITH AI (GPT)"
+                onPress={() => {
+                  toggleModal();
+                  navigateToAddGPT();
+                }}
+                color={darkModeEnabled ? '#F59E0B' : '#F59E0B'}
+                darkMode={darkModeEnabled}
+                icon="robot"
+                style={styles.modalButton}
+              />
+            </View>
+
             <TouchableOpacity
-              style={styles.modalButton}
-              onPress={() => {
-                navigateToAddGPT();
-                toggleModal();
-              }}
+              style={styles.closeModalButton}
+              onPress={toggleModal}
             >
-              <MaterialCommunityIcons name="robot" size={normalize(22)} color={darkModeEnabled ? '#fff' : '#23262A'} />
-              <Text style={[
-                styles.modalText,
-                { color: darkModeEnabled ? '#E0E0E0' : '#23262A' }
-              ]}>
-                Agregar Categoría Con IA
+              <Text style={[styles.closeModalText, { color: darkModeEnabled ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)' }]}>
+                CANCEL
               </Text>
             </TouchableOpacity>
           </View>
@@ -133,73 +254,109 @@ const CategoryList = ({
   );
 };
 
-export default CategoryList;
-
-// --- ESTILOS RESPONSIVE ---
 const styles = StyleSheet.create({
-  titleRow: {
+  headerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 4,
+  },
+  titleSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginHorizontal: width * 0.05, // 5% del ancho
-    marginTop: height * 0.03,       // 3% del alto
-    marginBottom: height * 0.02,
+    gap: 12,
+  },
+  titleDecoration: {
+    gap: 4,
+  },
+  decorPixel: {
+    width: 6,
+    height: 6,
+    borderRadius: 1,
   },
   categoriesTitle: {
-    fontSize: normalize(30),
-    fontFamily: 'Pagebash',
-    letterSpacing: -0.5,
+    fontSize: normalize(20),
+    fontWeight: '900',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    letterSpacing: 2,
   },
-  plusButton: {
-    width: width * 0.13,     // 13% del ancho de pantalla
-    height: width * 0.13,
-    borderRadius: width * 0.065,
+  subtitleRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    ...Platform.select({
-      ios: {
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.17,
-        shadowRadius: 7,
-      },
-      android: {
-        elevation: 5,
-      },
-    }),
+    gap: 6,
+    marginTop: 2,
+  },
+  subtitleDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+  },
+  subtitle: {
+    fontSize: normalize(10),
+    fontWeight: 'bold',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    letterSpacing: 1,
   },
   modalOverlay: {
     flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(32,32,32,0.3)',
+    padding: 20,
   },
   modalContent: {
-    width: width > 450 ? 400 : width * 0.86,
-    borderRadius: 22,
+    width: '100%',
+    borderRadius: 20,
     padding: 24,
-    alignItems: 'stretch',
-    shadowColor: '#23262A',
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 5,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
-  modalButton: {
+  modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: height * 0.018,
-    paddingHorizontal: width * 0.045,
-    marginVertical: 7,
-    borderRadius: 16,
-    backgroundColor: 'rgba(100,100,100,0.06)',
+    gap: 12,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    marginBottom: 20,
   },
-  modalText: {
-    fontSize: normalize(18),
-    fontFamily: 'WorsSansSemiBold',
-    marginLeft: 15,
-    letterSpacing: 0,
+  modalTitle: {
+    fontSize: normalize(16),
+    fontWeight: '900',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    letterSpacing: 1,
   },
-  listContainer: {
-    paddingTop: height * 0.01,
-    paddingBottom: height * 0.15, // Espacio responsivo para TabBar
+  modalBody: {
+    gap: 12,
+  },
+  modalButton: {
+    width: '100%',
+  },
+  modalSeparator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginVertical: 10,
+  },
+  sepLine: {
+    flex: 1,
+    height: 1,
+  },
+  sepText: {
+    fontSize: normalize(10),
+    fontWeight: 'bold',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  closeModalButton: {
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  closeModalText: {
+    fontSize: normalize(11),
+    fontWeight: 'bold',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    letterSpacing: 1,
   },
 });
+
+export default CategoryList;

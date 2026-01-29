@@ -1,275 +1,495 @@
-import React from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, Dimensions, Platform } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { 
+  View, 
+  Text, 
+  FlatList, 
+  TouchableOpacity, 
+  StyleSheet, 
+  Image, 
+  Dimensions, 
+  Platform,
+  Animated,
+  Easing,
+  InteractionManager,
+} from 'react-native';
 import { useSelector } from 'react-redux';
-import { FontAwesome } from '@expo/vector-icons';
+import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { selectDarkMode } from '../../../../redux/darkModeSlice';
 
 const { width } = Dimensions.get('window');
-const cardWidth = (width * 0.9 - 40) / 2;
+const CARD_WIDTH = (width * 0.9 - 36) / 2; // Ajustado para mejor espaciado
+const CARD_HEIGHT = CARD_WIDTH * 1.1; // Más cuadrado
 
-const RecentFlashcards = ({ recentCategories = [], onNavigateToFlashcardList }) => {
-  const darkModeEnabled = useSelector(selectDarkMode);
+/**
+ * PowerDot - LED simple más pequeño
+ */
+const PowerDot = ({ active = true, darkMode }) => {
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const color = active ? (darkMode ? '#4ADE80' : '#10B981') : 'rgba(255,255,255,0.2)';
 
-  const renderItem = ({ item }) => {
-    const { category, colorPair, imageUri } = item;
+  useEffect(() => {
+    let animationHandle;
+    let animation;
+    
+    if (active) {
+      // Diferir animación hasta después de la navegación
+      animationHandle = InteractionManager.runAfterInteractions(() => {
+        animation = Animated.loop(
+          Animated.sequence([
+            Animated.timing(pulseAnim, {
+              toValue: 1.3,
+              duration: 1000,
+              easing: Easing.inOut(Easing.ease),
+              useNativeDriver: true,
+            }),
+            Animated.timing(pulseAnim, {
+              toValue: 1,
+              duration: 1000,
+              easing: Easing.inOut(Easing.ease),
+              useNativeDriver: true,
+            }),
+          ])
+        );
+        animation.start();
+      });
+    } else {
+      pulseAnim.setValue(1);
+    }
+    
+    return () => {
+      if (animation) animation.stop();
+      if (animationHandle) animationHandle.cancel();
+    };
+  }, [active, pulseAnim]);
 
-    // Paleta de colores refinada para Modo Oscuro
-    const baseDarkCardBgStart = '#30343D'; // Inicio del gradiente del fondo de la tarjeta
-    const baseDarkCardBgEnd = '#282C34';   // Fin del gradiente del fondo de la tarjeta
-    const defaultDarkTextColor = '#F0F0F0'; // Texto principal casi blanco, alta legibilidad
-    const placeholderIconDarkColor = '#A0A0A0'; // Color del icono del placeholder
-    const darkBorderColor = 'rgba(255, 255, 255, 0.15)'; // Borde sutil pero definitorio
+  return (
+    <Animated.View 
+      style={[
+        styles.powerDot, 
+        { 
+          backgroundColor: color,
+          transform: active ? [{ scale: pulseAnim }] : [],
+        }
+      ]} 
+    />
+  );
+};
 
-    // Colores para Modo Claro (manteniendo simplicidad)
-    const defaultLightBackgroundColor = '#FFFFFF';
-    const defaultLightTextColor = '#1C1C1E';
-    const lightBorderColor = 'rgba(0, 0, 0, 0.09)';
+/**
+ * SlotCard - Tarjeta simplificada y moderna
+ */
+const SlotCard = ({ 
+  category, 
+  colorPair, 
+  imageUri, 
+  slotNumber,
+  darkModeEnabled,
+  onPress,
+}) => {
+  const accentColor = colorPair?.background || colorPair?.primary || '#6366F1';
+  const bgColor = darkModeEnabled ? '#1E1E1E' : '#FFFFFF';
+  const borderColor = darkModeEnabled ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
 
-    // Determinar colores finales basados en colorPair y modo
-    const finalCardBgStart = darkModeEnabled ? (colorPair?.darkBgStart || baseDarkCardBgStart) : (colorPair?.background || defaultLightBackgroundColor);
-    const finalCardBgEnd = darkModeEnabled ? (colorPair?.darkBgEnd || baseDarkCardBgEnd) : (colorPair?.background || defaultLightBackgroundColor);
-    const finalTextColor = darkModeEnabled ? (colorPair?.darkText || defaultDarkTextColor) : (colorPair?.text || defaultLightTextColor);
-    const finalBorderColor = darkModeEnabled ? darkBorderColor : lightBorderColor;
-
-    // Gradiente para el texto sobre la imagen/fondo
-    const textOverlayGradient = darkModeEnabled
-      ? ['rgba(10, 10, 15, 0.0)', 'rgba(10, 10, 15, 0.7)', 'rgba(10, 10, 15, 0.95)'] // Gradiente de texto más progresivo y oscuro
-      : ['transparent', `${colorPair?.background || defaultLightBackgroundColor}E9`];
-
-    // Estilos de sombra condicionales
-    const cardShadowStyle = Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: darkModeEnabled ? 3 : 2 },
-        shadowOpacity: darkModeEnabled ? 0.22 : 0.12,
-        shadowRadius: darkModeEnabled ? 5 : 4,
-      },
-      android: {
-        elevation: darkModeEnabled ? 4 : 3,
-      },
-    });
-
-    return (
-      <TouchableOpacity
-        style={[
-          styles.categoryCard,
-          // El backgroundColor aquí es un fallback, el gradiente lo cubrirá si está presente
-          { backgroundColor: darkModeEnabled ? finalCardBgEnd : finalCardBgStart },
-          { borderColor: finalBorderColor },
-          cardShadowStyle,
-        ]}
-        activeOpacity={0.85} // Un poco más de feedback
-        onPress={() => onNavigateToFlashcardList(category, colorPair, imageUri)}
-      >
-        {/* Gradiente de fondo para la tarjeta en Modo Oscuro (o color sólido en Modo Claro) */}
-        {darkModeEnabled ? (
-          <LinearGradient
-            colors={[finalCardBgStart, finalCardBgEnd]}
-            style={StyleSheet.absoluteFillObject} // Cubre toda la tarjeta
-          />
-        ) : null}
-
-        {/* Contenido de la tarjeta (Imagen o Placeholder) */}
+  return (
+    <TouchableOpacity
+      style={[styles.slotCard, { 
+        backgroundColor: bgColor,
+        borderColor: borderColor,
+      }]}
+      activeOpacity={0.85}
+      onPress={onPress}
+    >
+      {/* Image area */}
+      <View style={styles.imageArea}>
         {imageUri ? (
-          <Image
-            source={{ uri: imageUri }}
-            style={styles.cardImageBackground}
-            resizeMode="cover"
-          />
+          <>
+            <Image
+              source={{ uri: imageUri }}
+              style={styles.slotImage}
+              resizeMode="cover"
+            />
+            <LinearGradient
+              colors={['transparent', 'rgba(0,0,0,0.8)']}
+              style={styles.imageGradient}
+              locations={[0.4, 1]}
+            />
+          </>
         ) : (
-          <View style={[
-            styles.placeholderView,
-            // El fondo del placeholder ya no es necesario si el gradiente de tarjeta lo cubre
-            // Solo para modo claro, podríamos mantener un fondo sutil
-            { backgroundColor: darkModeEnabled ? 'transparent' : `${finalTextColor}10` }
-          ]}>
-            <FontAwesome name="image" size={cardWidth * 0.3} color={darkModeEnabled ? placeholderIconDarkColor : `${finalTextColor}99`} />
+          <View style={[styles.placeholderImage, { backgroundColor: accentColor + '20' }]}>
+            <FontAwesome5 
+              name="gamepad" 
+              size={24} 
+              color={accentColor} 
+              style={{ opacity: 0.4 }}
+            />
           </View>
         )}
 
-        {/* Gradiente para el texto */}
-        <LinearGradient
-          colors={textOverlayGradient}
-          style={styles.textGradient}
-        >
-          <Text
-            style={[styles.categoryName, { color: finalTextColor }]}
-            numberOfLines={2}
-            ellipsizeMode="tail"
-          >
-            {category.name}
-          </Text>
-        </LinearGradient>
-      </TouchableOpacity>
-    );
-  };
+        {/* Slot badge */}
+        <View style={[styles.slotBadge, { backgroundColor: accentColor }]}>
+          <Text style={styles.slotBadgeText}>#{slotNumber}</Text>
+        </View>
 
-  // El contenedor principal y el estado vacío se mantienen sin cambios significativos
-  // Asegúrate de que styles.container tenga un fondo oscuro para el modo oscuro (ej. #1A1D21)
-  if (recentCategories.length === 0) {
-    return (
-      <View style={[
-        styles.container,
-        // Fondo del componente "RecentFlashcards"
-        { backgroundColor: darkModeEnabled ? '#1A1D21' : '#F9F9F9' }
-      ]}>
-        <Text style={[
-          styles.title,
-          { color: darkModeEnabled ? '#EFEFEF' : '#333' }
-        ]}>
-          Opened Recently
-        </Text>
-        <View style={styles.emptyStateContainer}>
-          <FontAwesome
-            name="clock-o"
-            size={38}
-            color={darkModeEnabled ? '#484C56' : '#D0D0D0'}
-          />
-          <Text style={[
-            styles.emptyStateText,
-            { color: darkModeEnabled ? '#707888' : '#888' }
-          ]}>
-            No recent flashcards available
+        {/* Category name overlay */}
+        <View style={styles.nameOverlay}>
+          <Text style={styles.categoryName} numberOfLines={2}>
+            {category?.name || 'Unnamed'}
           </Text>
         </View>
       </View>
-    );
-  }
+
+      {/* Footer */}
+      <View style={[styles.slotFooter, { borderTopColor: borderColor }]}>
+        <View style={styles.footerContent}>
+          <View style={styles.statusIndicator}>
+            <PowerDot active={true} darkMode={darkModeEnabled} />
+            <Text style={[styles.statusText, { 
+              color: darkModeEnabled ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)' 
+            }]}>
+              SAVED
+            </Text>
+          </View>
+          <Ionicons 
+            name="chevron-forward" 
+            size={14} 
+            color={darkModeEnabled ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.25)'} 
+          />
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+};
+
+/**
+ * SectionHeader - Header limpio y moderno
+ */
+const SectionHeader = ({ darkModeEnabled }) => {
+  const textColor = darkModeEnabled ? '#FFFFFF' : '#1A1A2E';
+  const subtitleColor = darkModeEnabled ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)';
+  const accentColor = darkModeEnabled ? '#4ADE80' : '#10B981';
 
   return (
-    <View style={[
-      styles.container,
-      { backgroundColor: darkModeEnabled ? '#1A1D21' : '#F9F9F9' } // Un fondo ligeramente diferente para el contenedor
-    ]}>
-      <View style={styles.headerContainer}>
-        <Text style={[
-          styles.title,
-          { color: darkModeEnabled ? '#EFEFEF' : '#333' }
-        ]}>
-          Opened Recently
-        </Text>
-        {recentCategories.length > 0 && (
-          <Text style={[
-            styles.subtitle,
-            { color: darkModeEnabled ? '#A0A8B8' : '#777' }
-          ]}>
-            Tap to continue learning
+    <View style={styles.headerContainer}>
+      {/* Top decoration */}
+      <View style={styles.headerTopRow}>
+        <View style={styles.headerIcon}>
+          <FontAwesome5 name="save" size={14} color={accentColor} />
+        </View>
+        <View style={styles.headerTextSection}>
+          <Text style={[styles.headerTitle, { color: textColor }]}>
+            QUICK RESUME
           </Text>
-        )}
+          <Text style={[styles.headerSubtitle, { color: subtitleColor }]}>
+            Recently played games
+          </Text>
+        </View>
+        <View style={styles.headerDecor}>
+          <View style={[styles.decorDot, { backgroundColor: accentColor }]} />
+          <View style={[styles.decorDot, { backgroundColor: accentColor, opacity: 0.6 }]} />
+          <View style={[styles.decorDot, { backgroundColor: accentColor, opacity: 0.3 }]} />
+        </View>
       </View>
+    </View>
+  );
+};
 
-      <FlatList
-        data={recentCategories}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.category.id.toString()}
-        numColumns={2}
-        columnWrapperStyle={styles.row}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        extraData={darkModeEnabled}
+/**
+ * EmptyState - Estado vacío minimalista
+ */
+const EmptyState = ({ darkModeEnabled }) => {
+  const blinkAnim = useRef(new Animated.Value(0.4)).current;
+  
+  useEffect(() => {
+    let animationHandle;
+    let animation;
+    
+    // Diferir animación hasta después de la navegación
+    animationHandle = InteractionManager.runAfterInteractions(() => {
+      animation = Animated.loop(
+        Animated.sequence([
+          Animated.timing(blinkAnim, {
+            toValue: 1,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(blinkAnim, {
+            toValue: 0.4,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      animation.start();
+    });
+    
+    return () => {
+      if (animation) animation.stop();
+      if (animationHandle) animationHandle.cancel();
+    };
+  }, [blinkAnim]);
+
+  return (
+    <View style={styles.emptyContainer}>
+      <Animated.View style={{ opacity: blinkAnim }}>
+        <FontAwesome5 
+          name="clock" 
+          size={32} 
+          color={darkModeEnabled ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)'} 
+        />
+      </Animated.View>
+      <Text style={[styles.emptyText, { 
+        color: darkModeEnabled ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.35)' 
+      }]}>
+        NO RECENT GAMES
+      </Text>
+      <Text style={[styles.emptySubtext, { 
+        color: darkModeEnabled ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.2)' 
+      }]}>
+        Start playing to see your progress
+      </Text>
+    </View>
+  );
+};
+
+/**
+ * RecentFlashcards - Componente principal rediseñado
+ */
+const RecentFlashcards = ({ recentCategories = [], onNavigateToFlashcardList }) => {
+  const darkModeEnabled = useSelector(selectDarkMode);
+
+  const renderItem = ({ item, index }) => {
+    const { category, colorPair, imageUri } = item;
+    return (
+      <SlotCard
+        key={`${category.id}-${index}`}
+        category={category}
+        colorPair={colorPair}
+        imageUri={imageUri}
+        slotNumber={index + 1}
+        darkModeEnabled={darkModeEnabled}
+        onPress={() => onNavigateToFlashcardList(category, colorPair, imageUri)}
       />
+    );
+  };
+
+  const listKey = recentCategories.map(c => c.category?.id).join(',');
+
+  return (
+    <View style={[styles.container, { 
+      backgroundColor: darkModeEnabled ? '#0F0F0F' : '#F8F9FA',
+      borderColor: darkModeEnabled ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+    }]}>
+      <SectionHeader darkModeEnabled={darkModeEnabled} />
+
+      {recentCategories.length === 0 ? (
+        <EmptyState darkModeEnabled={darkModeEnabled} />
+      ) : (
+        <FlatList
+          data={recentCategories}
+          renderItem={renderItem}
+          keyExtractor={(item, index) => `recent-${item.category?.id || index}-${index}`}
+          numColumns={2}
+          columnWrapperStyle={styles.row}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          scrollEnabled={false}
+          extraData={[darkModeEnabled, listKey]}
+        />
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { // Contenedor principal de "RecentFlashcards"
-    width: '90%',
-    maxWidth: 600,
+  container: {
+    width: '100%',
+    maxWidth: 480,
     alignSelf: 'center',
-    borderRadius: 28,
-    marginBottom: 24,
-    overflow: 'visible', // Permitir que las sombras se vean bien, especialmente en iOS
-    paddingVertical: 8, // Pequeño padding vertical para el contenido dentro del contenedor
-    // backgroundColor se define inline
-    // Las sombras se aplican al contenedor mismo
+    borderRadius: 16,
+    marginBottom: 20,
+    paddingTop: 16,
+    paddingBottom: 16,
+    borderWidth: 1,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 5 },
-        shadowOpacity: 0.1, // Sombra sutil para el contenedor
-        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
       },
       android: {
-        elevation: 5, // Elevación sutil para el contenedor
+        elevation: 4,
       },
     }),
   },
+
+  // Header
   headerContainer: {
-    paddingTop: 18, // Ligeramente ajustado
-    paddingBottom: 10,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  headerIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: 'rgba(74,222,128,0.15)',
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  title: {
-    fontSize: 26, // Ligeramente más pequeño si es necesario
-    fontFamily: 'Pagebash',
+  headerTextSection: {
+    flex: 1,
+  },
+  headerTitle: {
+    fontSize: 14,
     fontWeight: 'bold',
-    marginBottom: 3,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    letterSpacing: 1.5,
   },
-  subtitle: {
-    fontSize: 13,
-    marginBottom: 10, // Más espacio después del subtítulo
-    opacity: 0.9,
+  headerSubtitle: {
+    fontSize: 10,
+    marginTop: 2,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    letterSpacing: 0.5,
   },
-  categoryCard: {
-    width: cardWidth,
-    aspectRatio: 1, // Cuadradas
-    margin: 7,
-    borderRadius: 20, // Un radio un poco mayor para suavizar
+  headerDecor: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  decorDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+  },
+
+  // Slot Card
+  slotCard: {
+    width: CARD_WIDTH,
+    height: CARD_HEIGHT,
+    margin: 6,
+    borderRadius: 12,
     borderWidth: 1,
-    overflow: 'hidden', // Importante para que el contenido respete el borde
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+  imageArea: {
+    flex: 1,
     position: 'relative',
-    // backgroundColor y borderColor se aplican dinámicamente
-    // Las sombras también se aplican dinámicamente (cardShadowStyle)
   },
-  cardImageBackground: {
-    ...StyleSheet.absoluteFillObject, // La imagen ocupa toda la tarjeta
-    opacity: 0.9, // Sutil opacidad a la imagen en dark mode para mezclarla mejor si es muy brillante
-    // Podrías hacer esta opacidad condicional: darkModeEnabled ? 0.85 : 1
+  slotImage: {
+    ...StyleSheet.absoluteFillObject,
   },
-  placeholderView: {
+  imageGradient: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  placeholderImage: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  textGradient: {
+  slotBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  slotBadgeText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  nameOverlay: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    height: '65%', // Un poco más de altura para el gradiente del texto
-    justifyContent: 'flex-end',
-    paddingVertical: 10, // Ajustar padding
-    paddingHorizontal: 12,
-    zIndex: 2,
+    padding: 10,
   },
   categoryName: {
-    fontSize: 15, // Fuente un poco más grande para el nombre en la tarjeta
+    fontSize: 12,
     fontWeight: 'bold',
-    fontFamily: 'Pagebash',
-    // color se aplica inline
+    color: '#FFFFFF',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
+
+  // Footer
+  slotFooter: {
+    borderTopWidth: 1,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
+  footerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  statusIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  powerDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  statusText: {
+    fontSize: 8,
+    fontWeight: '600',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    letterSpacing: 1,
+  },
+
+  // List
   row: {
-    justifyContent: 'space-around',
-    paddingHorizontal: 5,
+    justifyContent: 'center',
   },
   listContent: {
-    paddingBottom: 16, // Espacio al final
-    paddingHorizontal: 7,
+    paddingHorizontal: 6,
   },
-  emptyStateContainer: {
-    paddingVertical: 35,
-    paddingHorizontal: 20,
+
+  // Empty State
+  emptyContainer: {
     alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 150, // Para darle un tamaño mínimo al estado vacío
+    paddingVertical: 40,
+    paddingHorizontal: 20,
   },
-  emptyStateText: {
-    marginTop: 10,
-    fontSize: 15,
+  emptyText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    letterSpacing: 1.5,
+    marginTop: 12,
+  },
+  emptySubtext: {
+    fontSize: 10,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    marginTop: 4,
     textAlign: 'center',
-  }
+  },
 });
 
 export default RecentFlashcards;

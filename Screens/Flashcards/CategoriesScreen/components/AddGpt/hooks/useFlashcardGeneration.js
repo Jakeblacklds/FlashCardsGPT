@@ -1,169 +1,292 @@
-// Ubicación: Screens/Flashcards/CategoriesScreen/components/AddGpt/hooks/useFlashcardGeneration.js
-import { useState } from 'react';
-import { useSharedValue } from 'react-native-reanimated';
+import { useState, useRef } from 'react';
 import { Keyboard, Alert } from 'react-native';
-import * as FileSystem from 'expo-file-system';
+import axios from 'axios';
+import { getAuth } from 'firebase/auth';
 
-// Tus funciones externas
-import { fetchFlashcardsFromGPT } from '../FetchFlashcards'; // ASEGÚRATE QUE ESTA RUTA ES CORRECTA
-import { handleAddCategoryAndFlashcards } from '../HandleAddCategory'; // ESTA FUNCIÓN DEBE DEVOLVER categoryId
+// External functions
+import { fetchFlashcardsFromGPT } from '../FetchFlashcards';
+import {
+  fetchCategories,
+  updatePendingProgress,
+  resolvePendingCategory,
+  setPendingError
+} from '../../../../../../redux/FlashcardSlice';
 
-// Funciones de Gemini y DB local para imágenes
-import { generateImageWithGemini } from '../../../../../../geminiApi'; // Ajusta tu ruta
-import { upsertImage as upsertImageDb } from '../../../../../../db'; // Ajusta tu ruta
-
+/**
+ * Hook for handling flashcard generation
+ * Supports background generation with simulated progress for better UX
+ */
 export const useFlashcardGeneration = (navigation, dispatch) => {
   const [debugMessage, setDebugMessage] = useState('');
-  const [loadingMessage, setLoadingMessage] = useState('');
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const isLoading = useSharedValue(false); // Tu SharedValue
 
-  const handleGeneration = async (
+  // Store interval refs for cleanup
+  const progressIntervalRef = useRef(null);
+
+  /**
+   * Start simulated progress animation
+   * Progress moves gradually to give user feedback while waiting for API
+   */
+  const startSimulatedProgress = (tempId, targetProgress = 80, durationMs = 25000) => {
+    let currentProgress = 5;
+    const startTime = Date.now();
+
+    // Clear any existing interval
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+    }
+
+    progressIntervalRef.current = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const progressRatio = Math.min(elapsed / durationMs, 1);
+
+      // Easing function for more natural feel (slow at start/end, faster in middle)
+      const easedProgress = easeInOutCubic(progressRatio);
+      currentProgress = 5 + (targetProgress - 5) * easedProgress;
+
+      dispatch(updatePendingProgress({
+        tempId,
+        progress: Math.round(currentProgress),
+        status: 'generating',
+      }));
+
+      // Stop when we reach target or timeout
+      if (progressRatio >= 1) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+    }, 200); // Update every 200ms for smooth animation
+
+    return () => {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+    };
+  };
+
+  /**
+   * Easing function for natural progress animation
+   */
+  const easeInOutCubic = (t) => {
+    return t < 0.5
+      ? 4 * t * t * t
+      : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  };
+
+  /**
+   * Stop simulated progress and jump to real value
+   */
+  const stopSimulatedProgress = (tempId, realProgress, status, createdCards) => {
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
+
+    dispatch(updatePendingProgress({
+      tempId,
+      progress: realProgress,
+      status,
+      createdCards
+    }));
+  };
+
+  /**
+   * Background generation - creates flashcards while user navigates away
+   * Uses simulated progress for better UX since API returns all at once
+   */
+  const handleBackgroundGeneration = async (
+    tempId,
     categoryName,
     numFlashcards,
     currentUserUID,
-    selectedTags,
-    imageStyleObject // El objeto de estilo seleccionado
+    selectedTags
   ) => {
-    console.log('[useFlashcardGeneration] handleGeneration INICIADA.'); // <--- DEBUG
-    setDebugMessage('Iniciando generación...');
-    setLoadingMessage('Preparando...');
-    isLoading.value = true;
-    console.log('[useFlashcardGeneration] isLoading.value AHORA ES:', isLoading.value); // <--- DEBUG
+    console.log('[useFlashcardGeneration] Starting background generation for:', categoryName);
+
+    // Start simulated progress (will animate from 5% to 80% over ~25 seconds)
+    const cleanupProgress = startSimulatedProgress(tempId, 80, 25000);
+
+    try {
+      // Step 1: Fetch flashcards from GPT (this is the slow part)
+      let generatedFlashcards;
+      try {
+        generatedFlashcards = await fetchFlashcardsFromGPT(numFlashcards, categoryName, selectedTags);
+      } catch (fetchError) {
+        console.error('[useFlashcardGeneration] GPT fetch error:', fetchError);
+        cleanupProgress();
+        dispatch(setPendingError({ tempId, error: fetchError.message || 'AI generation failed' }));
+        return;
+      }
+
+      if (!generatedFlashcards || generatedFlashcards.length === 0) {
+        cleanupProgress();
+        dispatch(setPendingError({ tempId, error: 'No flashcards generated' }));
+        return;
+      }
+
+      // GPT responded! Stop simulated progress and jump to 85%
+      stopSimulatedProgress(tempId, 85, 'saving', generatedFlashcards.length);
+
+      // Step 2: Parse flashcards (fast operation)
+      const formattedFlashcards = parseFlashcards(generatedFlashcards);
+
+      dispatch(updatePendingProgress({
+        tempId,
+        progress: 90,
+        status: 'saving',
+        createdCards: formattedFlashcards.length
+      }));
+
+      // Small delay for visual feedback
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      // Step 3: Save to Firebase
+      const flashcardsObject = formattedFlashcards.reduce((obj, item, index) => {
+        obj[`flashcard${index + 1}`] = item;
+        return obj;
+      }, {});
+
+      const auth = getAuth();
+      const user = auth.currentUser;
+      if (!user) {
+        dispatch(setPendingError({ tempId, error: 'User not authenticated' }));
+        return;
+      }
+
+      const token = await user.getIdToken(true);
+      const categoryKey = encodeURIComponent(categoryName);
+      const categoryUrl = `https://flashcardgpt-default-rtdb.firebaseio.com/users/${currentUserUID}/categories/${categoryKey}.json?auth=${token}`;
+
+      dispatch(updatePendingProgress({
+        tempId,
+        progress: 95,
+        status: 'saving',
+        createdCards: formattedFlashcards.length
+      }));
+
+      await axios.put(categoryUrl, {
+        name: categoryName,
+        flashcards: flashcardsObject,
+      });
+
+      // Step 4: Complete!
+      dispatch(updatePendingProgress({
+        tempId,
+        progress: 100,
+        status: 'complete',
+        createdCards: formattedFlashcards.length
+      }));
+
+      // Refresh categories list
+      dispatch(fetchCategories());
+
+      // Remove from pending after a short delay so user sees completion
+      setTimeout(() => {
+        dispatch(resolvePendingCategory({ tempId }));
+      }, 1200);
+
+      console.log('[useFlashcardGeneration] Background generation completed successfully!');
+
+    } catch (error) {
+      console.error('[useFlashcardGeneration] Background generation error:', error);
+      cleanupProgress();
+      dispatch(setPendingError({ tempId, error: error.message || 'Unknown error' }));
+    }
+  };
+
+  /**
+   * Parse raw GPT flashcard strings into structured objects
+   */
+  const parseFlashcards = (generatedFlashcards) => {
+    return generatedFlashcards.map((flashcardText, index) => {
+      const parts = flashcardText.split(', ');
+
+      const getValue = (part, englishLabel, spanishLabel) => {
+        if (!part) return null;
+        const lowerPart = part.toLowerCase();
+        if (lowerPart.includes(englishLabel.toLowerCase() + ':') ||
+          lowerPart.includes(spanishLabel.toLowerCase() + ':')) {
+          const colonIndex = part.indexOf(':');
+          return part.substring(colonIndex + 1).trim();
+        }
+        return null;
+      };
+
+      const englishPart = getValue(parts[0], 'English', 'Inglés') || parts[0]?.split(': ')[1] || `Error-Eng-${index}`;
+      const spanishPart = getValue(parts[1], 'Spanish', 'Español') || parts[1]?.split(': ')[1] || `Error-Esp-${index}`;
+      const typePart = (getValue(parts[2], 'Type', 'Tipo') || parts[2]?.split(': ')[1] || 'vocab').toLowerCase();
+      const rarityPart = parseInt(getValue(parts[3], 'Rarity', 'Rareza') || parts[3]?.split(': ')[1]) || 1;
+      const emojiPart = getValue(parts[4], 'Emoji', 'Emoji') || parts[4]?.split(': ')[1] || '📚';
+
+      let variants = [];
+      const alternativesPartRaw = getValue(parts[5], 'Alternatives', 'Variantes') ||
+        parts[5]?.split('Variantes: ')[1] ||
+        parts[5]?.split('Alternatives: ')[1];
+
+      if (alternativesPartRaw) {
+        try {
+          const parsed = JSON.parse(alternativesPartRaw);
+          if (Array.isArray(parsed)) {
+            const UNLOCK_LEVELS = { common: 2, uncommon: 5, rare: 8 };
+            variants = parsed.map((variant, vIndex) => ({
+              text: variant.text || '',
+              rarity: variant.rarity || 'common',
+              level: vIndex + 1,
+              unlockAtWordLevel: UNLOCK_LEVELS[variant.rarity] || 2
+            }));
+          }
+        } catch (e) {
+          console.warn(`Error parsing variants for index ${index}:`, e);
+          variants = [];
+        }
+      }
+
+      const validTypes = ['vocab', 'phrase', 'idiom', 'verb', 'adjective', 'noun'];
+      const type = validTypes.includes(typePart) ? typePart : 'vocab';
+      const rarity = Math.min(5, Math.max(1, rarityPart));
+
+      return {
+        english: englishPart,
+        spanish: spanishPart,
+        type,
+        rarity,
+        icon: emojiPart,
+        variants,
+        variant1: variants[0]?.text || null,
+        variant2: variants[1]?.text || null,
+        variant3: variants[2]?.text || null,
+        userProgress: {
+          currentLevel: 0,
+          xp: 0,
+          timesCorrect: 0,
+          timesIncorrect: 0,
+          lastPracticed: null
+        }
+      };
+    });
+  };
+
+  /**
+   * Validate inputs before starting generation
+   */
+  const validateInputs = (categoryName, currentUserUID) => {
     Keyboard.dismiss();
 
     if (!categoryName.trim()) {
-      Alert.alert('Nombre Requerido', 'Por favor, ingresa un nombre para la categoría.');
-      // Es importante resetear isLoading aquí si la función retorna prematuramente
-      // aunque el 'finally' lo haría, es buena práctica ser explícito en retornos tempranos.
-      // isLoading.value = false; // El 'finally' se encargará de esto.
-      return;
+      Alert.alert('Name Required', 'Please enter a category name.');
+      return false;
     }
     if (!currentUserUID) {
-      Alert.alert('Error de Usuario', 'No se pudo identificar al usuario.');
-      // isLoading.value = false; // El 'finally' se encargará de esto.
-      return;
+      Alert.alert('User Error', 'Could not identify user.');
+      return false;
     }
-
-    let generatedCategoryId = null;
-
-    try {
-      setLoadingMessage('1/3 Creando categoría y flashcards...');
-      setDebugMessage('Llamando a handleAddCategoryAndFlashcards...');
-
-      const resultFromAddCategory = await handleAddCategoryAndFlashcards(
-        categoryName,
-        numFlashcards,
-        currentUserUID,
-        isLoading, // Pasando el SharedValue (aunque no se modifica directamente en la función llamada)
-        dispatch,
-        setShowSuccessModal, // Este setShowSuccessModal se refiere al del hook, no necesariamente al que maneja handleAdd...
-        navigation,
-        fetchFlashcardsFromGPT,
-        selectedTags
-      );
-
-      if (typeof resultFromAddCategory === 'string' && resultFromAddCategory) {
-        generatedCategoryId = resultFromAddCategory;
-      } else if (typeof resultFromAddCategory === 'object' && resultFromAddCategory && resultFromAddCategory.id) {
-        generatedCategoryId = resultFromAddCategory.id;
-      } else {
-        console.warn("[useFlashcardGeneration] handleAddCategoryAndFlashcards no devolvió un ID de categoría esperado. La imagen no se podrá asociar.");
-        // Si handleAddCategoryAndFlashcards falla y muestra una alerta, puede que no necesitemos otra aquí.
-        // Pero si no devuelve ID sin error aparente, es un problema.
-        // No se lanza error aquí para permitir que el flujo continúe si las flashcards se crearon pero el ID falló.
-      }
-
-      setDebugMessage(`Categoría y flashcards procesadas. ID obtenido: ${generatedCategoryId}`);
-
-      if (imageStyleObject && imageStyleObject.promptPrefix && generatedCategoryId) {
-        setLoadingMessage('2/3 Generando imagen de categoría...');
-        try {
-          const imagePrompt = `${imageStyleObject.promptPrefix} ${categoryName}, category for a flashcard app, vibrant, high quality, clean design,detailed `;
-          const base64ImageData = await generateImageWithGemini(imagePrompt);
-
-          if (base64ImageData) {
-            setLoadingMessage('3/3 Guardando imagen...');
-            const filename = `category_image_${generatedCategoryId}_${Date.now()}.png`;
-            const imagePath = `${FileSystem.cacheDirectory}${filename}`;
-
-            await FileSystem.writeAsStringAsync(imagePath, base64ImageData, {
-              encoding: FileSystem.EncodingType.Base64,
-            });
-
-            await upsertImageDb(generatedCategoryId, imagePath);
-            setDebugMessage('¡Imagen de categoría generada y guardada localmente!');
-          } else {
-            setDebugMessage('Categoría creada, pero la IA no devolvió datos para la imagen.');
-            // Considera una alerta si la imagen era esperada pero no se generó.
-            Alert.alert("Advertencia de Imagen", "Las flashcards y categoría se crearon, pero no se generó la imagen.");
-          }
-        } catch (imageError) {
-          console.error('[useFlashcardGeneration] Error generando o guardando imagen de categoría:', imageError);
-          setDebugMessage(`Error con imagen: ${imageError.message}. Flashcards y categoría creadas.`);
-          Alert.alert(
-            "Advertencia de Imagen",
-            "Las flashcards y la categoría se crearon, pero hubo un problema al generar o guardar la imagen."
-          );
-        }
-      } else if (imageStyleObject && imageStyleObject.promptPrefix && !generatedCategoryId) {
-        setDebugMessage('Se seleccionó estilo de imagen, pero no se pudo obtener el ID de la categoría para asociarla.');
-        Alert.alert("Advertencia de Imagen", "No se pudo asociar la imagen porque faltó el ID de la categoría. Las flashcards y la categoría (si se crearon) podrían estar guardadas.");
-      } else {
-        setDebugMessage('Categoría creada. No se seleccionó estilo de imagen o se eligió "Ninguno".');
-      }
-
-      // Lógica de éxito y navegación:
-      // Si handleAddCategoryAndFlashcards ya se encarga de setShowSuccessModal y la navegación tras éxito,
-      // esta parte podría ser redundante o necesitar ajuste.
-      // Basado en tu código original, handleAddCategoryAndFlashcards sí maneja esto.
-      // Sin embargo, si generatedCategoryId no se obtuvo, es posible que handleAddCategoryAndFlashcards haya fallado
-      // y ya haya mostrado una alerta.
-      if (generatedCategoryId) { // Solo si la creación de categoría fue exitosa (implícito si tenemos ID)
-        // `handleAddCategoryAndFlashcards` según tu código original maneja el success modal y navegación.
-        // Si has movido esa lógica aquí, entonces descomenta y ajusta:
-        /*
-        setLoadingMessage('¡Proceso completado!');
-        setShowSuccessModal(true); // El hook ahora maneja esto.
-        setTimeout(() => {
-            setShowSuccessModal(false);
-            if (navigation.canGoBack()) {
-                navigation.goBack();
-            } else {
-                navigation.navigate('Flashcards', { reload: true }); // O a donde deba ir
-            }
-        }, 2200);
-        */
-      } else {
-          // Si no hay generatedCategoryId, `handleAddCategoryAndFlashcards` probablemente falló y ya manejó la alerta.
-          // Si no falló pero no devolvió ID, es un problema en `handleAddCategoryAndFlashcards`.
-          console.warn("[useFlashcardGeneration] El proceso de creación de categoría no resultó en un ID. Revisar `handleAddCategoryAndFlashcards`.");
-          // Podrías mostrar una alerta genérica si no hay ID y no se intentó imagen,
-          // pero es probable que `handleAddCategoryAndFlashcards` ya lo haya hecho.
-      }
-
-    } catch (error) {
-      // Este catch captura errores lanzados por handleAddCategoryAndFlashcards
-      // o errores en la lógica de este hook antes de esa llamada.
-      console.error('[useFlashcardGeneration] Error en el proceso de generación principal:', error);
-      setDebugMessage(`Error: ${error?.message || 'Desconocido'}`);
-      Alert.alert('Error General', `Ocurrió un error durante la generación: ${error?.message || 'Intenta de nuevo.'}`);
-    } finally {
-      console.log('[useFlashcardGeneration] Bloque finally ALCANZADO. isLoading.value ANTES:', isLoading.value); // <--- DEBUG
-      isLoading.value = false;
-      console.log('[useFlashcardGeneration] isLoading.value AHORA ES (en finally):', isLoading.value); // <--- DEBUG
-      setLoadingMessage('');
-      // setDebugMessage(''); // Opcional: limpiar mensaje de debug al final
-    }
+    return true;
   };
 
   return {
     debugMessage,
-    loadingMessage,
-    showSuccessModal,
-    isLoading, // El SharedValue
-    handleGeneration,
-    setDebugMessage, // Si necesitas modificarlo desde fuera
-    setShowSuccessModal, // Si necesitas modificarlo desde fuera
+    handleBackgroundGeneration,
+    validateInputs,
+    setDebugMessage,
   };
 };

@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, initializeAuth, getReactNativePersistence } from "firebase/auth";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
 export const firebaseConfig = {
   apiKey: "AIzaSyAf0qROFvQyloV8D5Czd6D0B12pdpV3GWI",
@@ -18,3 +19,10 @@ initializeAuth(app, {
 });
 
 export const auth = getAuth(app);
+
+// Configurar Google Sign-In
+GoogleSignin.configure({
+  webClientId: '807857176798-qp428c9f33eo6s8cmc0cnjoatbt0pk06.apps.googleusercontent.com',
+  offlineAccess: true,
+});
+

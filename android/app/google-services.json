@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "807857176798",
+    "firebase_url": "https://flashcardgpt-default-rtdb.firebaseio.com",
+    "project_id": "flashcardgpt",
+    "storage_bucket": "flashcardgpt.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:807857176798:android:9d96603040b49a4fd1024f",
+        "android_client_info": {
+          "package_name": "com.jakeblack.flashcardex"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "807857176798-qp428c9f33eo6s8cmc0cnjoatbt0pk06.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCMQzeSpQQ8-6rrvvC1HnzZngLH2cyXuLI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "807857176798-qp428c9f33eo6s8cmc0cnjoatbt0pk06.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

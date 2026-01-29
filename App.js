@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { Provider } from 'react-redux';
+import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
+import { Provider, useSelector } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import flashcardSlice, { setCurrentUserUID } from './redux/FlashcardSlice';
-import { darkModeSlice } from './redux/darkModeSlice';
+import { darkModeSlice, selectDarkMode } from './redux/darkModeSlice';
+import studyProgressSlice, { loadStudyProgress } from './redux/StudyProgressSlice';
 import { initDB } from './db';
 import { ActionSheetProvider } from '@expo/react-native-action-sheet';
 import { AuthProvider } from './Auth/AuthContext';
@@ -18,8 +19,40 @@ const store = configureStore({
   reducer: {
     darkMode: darkModeSlice.reducer,
     flashcards: flashcardSlice.reducer,
+    studyProgress: studyProgressSlice.reducer,
   },
 });
+
+// Temas personalizados para eliminar el flash blanco
+const MyDarkTheme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    background: '#0D0D0E',
+    card: '#0D0D0E',
+  },
+};
+
+const MyLightTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    background: '#F5F5F7',
+    card: '#F5F5F7',
+  },
+};
+
+// Componente interno que usa el tema basado en Redux
+const AppNavigator = ({ isAuthenticated }) => {
+  const darkModeEnabled = useSelector(selectDarkMode);
+  const theme = darkModeEnabled ? MyDarkTheme : MyLightTheme;
+
+  return (
+    <NavigationContainer theme={theme}>
+      {isAuthenticated ? <MainStackNavigator /> : <AuthStackNavigator />}
+    </NavigationContainer>
+  );
+};
 
 const AppContent = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -36,6 +69,9 @@ const AppContent = () => {
       }
     };
     initializeDatabase();
+
+    // Cargar progreso de estudio desde AsyncStorage
+    store.dispatch(loadStudyProgress());
   }, []);
 
   useEffect(() => {
@@ -49,7 +85,7 @@ const AppContent = () => {
         setIsAuthenticated(false);
         store.dispatch(setCurrentUserUID(null));
       }
-      setTimeout(() => setIsLoading(false), 800); // Ajusta el delay a tu gusto
+      setTimeout(() => setIsLoading(false), 800);
     });
     return () => unsubscribe();
   }, []);
@@ -62,9 +98,7 @@ const AppContent = () => {
     <ActionSheetProvider>
       <AuthProvider>
         <Provider store={store}>
-          <NavigationContainer>
-            {isAuthenticated ? <MainStackNavigator /> : <AuthStackNavigator />}
-          </NavigationContainer>
+          <AppNavigator isAuthenticated={isAuthenticated} />
         </Provider>
       </AuthProvider>
     </ActionSheetProvider>

@@ -21,7 +21,7 @@ export const generateFlashcards = async (prompt) => {
     // Asegúrate de que 'gemini-1.5-flash-latest' u otro modelo de texto válido esté aquí.
     // 'gemini-2.0-flash-lite' no es un modelo de generación de texto estándar conocido.
     // Considera usar 'gemini-1.5-flash-latest' o el modelo de texto que estés utilizando.
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' }); // Ejemplo: 'gemini-1.5-flash-latest'
+    const model = genAI.getGenerativeModel({ model: 'gemini-3-flash-preview' }); // Ejemplo: 'gemini-1.5-flash-latest'
     const result = await model.generateContent(prompt);
     const response = await result.response;
     return response.text();
@@ -39,7 +39,7 @@ export const generateFlashcards = async (prompt) => {
 export const generateImageWithGemini = async (promptText) => {
   console.log("Intentando generar imagen con Gemini y el prompt:", promptText);
   try {
-    const modelName = "gemini-2.0-flash-preview-image-generation";
+    const modelName = "gemini-2.5-flash-image";
     const model = genAI.getGenerativeModel({ model: modelName });
 
     // Construir la solicitud. La documentación que proporcionaste indica:
@@ -77,7 +77,7 @@ export const generateImageWithGemini = async (promptText) => {
     if (!candidate.content || !candidate.content.parts || candidate.content.parts.length === 0) {
       console.error("No se encontraron partes de contenido en el candidato:", JSON.stringify(candidate, null, 2));
       if (candidate.finishReason && candidate.finishReason !== "STOP") {
-           throw new Error(`La generación de imagen falló o se detuvo. Razón: ${candidate.finishReason}`);
+        throw new Error(`La generación de imagen falló o se detuvo. Razón: ${candidate.finishReason}`);
       }
       // Si hay un promptFeedback con blockReason a nivel de respuesta general
       if (response.promptFeedback?.blockReason) {
@@ -104,10 +104,10 @@ export const generateImageWithGemini = async (promptText) => {
       console.error("No se encontraron datos de imagen base64 en las partes de la respuesta:", candidate.content.parts);
       // Diagnósticos adicionales
       if (candidate.finishReason && candidate.finishReason !== "STOP" && candidate.finishReason !== "MAX_TOKENS") {
-         throw new Error(`La generación de imagen falló o fue incompleta. Razón de finalización: ${candidate.finishReason}.`);
+        throw new Error(`La generación de imagen falló o fue incompleta. Razón de finalización: ${candidate.finishReason}.`);
       } else if (response.promptFeedback?.blockReason) {
-         const blockMessage = response.promptFeedback.blockReasonMessage || response.promptFeedback.blockReason;
-         throw new Error(`Generación de imagen bloqueada: ${blockMessage}`);
+        const blockMessage = response.promptFeedback.blockReasonMessage || response.promptFeedback.blockReason;
+        throw new Error(`Generación de imagen bloqueada: ${blockMessage}`);
       }
       throw new Error('Datos de imagen no encontrados en la respuesta de Gemini. El modelo pudo haber generado solo texto o encontrado un problema.');
     }
@@ -117,12 +117,12 @@ export const generateImageWithGemini = async (promptText) => {
   } catch (error) {
     console.error('Error detallado en generateImageWithGemini:', error);
     if (error.response && error.response.data) { // Si el error viene de una respuesta HTTP con datos
-        console.error('Detalles del error de la API Gemini:', error.response.data);
-        throw new Error(`Error de API Gemini: ${error.response.data.error?.message || JSON.stringify(error.response.data)}`);
+      console.error('Detalles del error de la API Gemini:', error.response.data);
+      throw new Error(`Error de API Gemini: ${error.response.data.error?.message || JSON.stringify(error.response.data)}`);
     }
     // Para errores de validación de la solicitud o de la propia API de Gemini que no sean HTTP errors.
     if (error.message && error.message.toLowerCase().includes("please ensure that response_modalities is a valid")) {
-        console.error("Error de validación: 'responseModalities' podría no ser un campo esperado en 'generationConfig' para esta versión del SDK o modelo. Revisa la documentación específica del SDK para 'gemini-2.0-flash-preview-image-generation'.");
+      console.error("Error de validación: 'responseModalities' podría no ser un campo esperado en 'generationConfig' para esta versión del SDK o modelo. Revisa la documentación específica del SDK para 'gemini-2.0-flash-preview-image-generation'.");
     }
     throw new Error(`Fallo al generar imagen con Gemini: ${error.message || error}`);
   }

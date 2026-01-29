@@ -1,38 +1,60 @@
 // Ubicación: Screens/Flashcards/CategoriesScreen/components/AddGpt/FetchFlashcards.js
 import { generateFlashcards } from '../../../../../geminiApi'; // Ajusta tu ruta
 
-export const fetchFlashcardsFromGPT = async (numFlashcards, category, selectedTags /* isLoading ya no se necesita aquí o no se usa para modificar */) => {
-    const tagsString = selectedTags.length > 0 ? `Etiquetas: ${selectedTags.join(', ')}` : '';
+export const fetchFlashcardsFromGPT = async (
+    numFlashcards,
+    category,
+    selectedTags
+) => {
+    const tagsString =
+        selectedTags && selectedTags.length > 0
+            ? `Tags: ${selectedTags.join(', ')}`
+            : '';
+
     const prompt = `
-Eres un generador de flashcards bilingües especializado en vocabulario de inglés a español para estudiantes mexicanos.
+You generate bilingual flashcards for American learners of Spanish.
 
-Crea exactamente ${numFlashcards} flashcards relacionadas con la categoría "${category}".${tagsString}
+Create exactly ${numFlashcards} flashcards related to "${category}".
+${tagsString}
 
-Sigue estas reglas estrictamente:
-- Cada flashcard debe tener el formato:
-"Inglés: [palabra o frase en inglés], Español: [traducción en español], Variante 1: [sinónimo o frase alternativa en español], Variante 2: [sinónimo o frase alternativa en español, opcional], Variante 3: [sinónimo o frase alternativa en español, opcional]"
-- Las variantes SOLO deben ser en español.
-- Siempre incluye al menos una variante. Si existen más, incluye hasta 3.
-- Si no hay variantes posibles, escribe solo "Variante 1: -"
-- NO agregues nada más fuera de la estructura, ni explicaciones, ni numeración.
-- No uses puntos al final de cada línea ni salto de línea extra.
-- No repitas palabras.
-- Si no hay variantes posibles no las hagas para no poner espacios vacios
-- Usa vocabulario útil, actual y natural para estudiantes mexicanos.
-- Si hay etiquetas proporcionadas, intégralas en la selección de palabras: ${tagsString}
+OUTPUT: one flashcard per line (no extra lines, no numbering).
+EXACT format:
+"English: [word or phrase], Spanish: [translation], Type: [vocab|phrase|idiom|verb|adjective|noun], Rarity: [1-5], Emoji: [one emoji], Alternatives: [JSON]"
 
-Devuelve solo las flashcards, una por línea, siguiendo la estructura. No incluyas encabezados ni instrucciones adicionales.
-    `;
+ALTERNATIVES (only when truly interchangeable):
+Replacement Test = an alternative is valid ONLY if it can replace the Spanish term in a natural sentence without changing meaning.
+
+Rules:
+- If Rarity <= 2 → Alternatives: []
+- Otherwise, include Alternatives ONLY if at least TWO valid alternatives pass the Replacement Test
+- If fewer than 2 → Alternatives: []
+- Max 3 alternatives
+- Each alternative must be a single word or short expression (no explanatory phrases)
+
+BANNED (never output as alternatives):
+- Definitions/descriptions: "device used for...", "something that...", "person who..."
+- Generic placeholders/words: "-", "N/A", "thing", "object", "device", "instrument", "element", "person"
+
+Alternatives JSON format (single line):
+[{"text":"...","rarity":"common|uncommon|rare"}]
+
+EMOJI:
+- Exactly ONE concrete emoji directly related to the core meaning
+- Avoid abstract or generic emojis (💡📌📘)
+
+FINAL:
+- Use natural, standard Spanish
+- Do not repeat English terms or Spanish translations across flashcards
+- Return ONLY the flashcards
+  `.trim();
 
     try {
-        // isLoading.value = true; // --- ELIMINADO ---
         const response = await generateFlashcards(prompt);
 
-        console.log('[IA fetchFlashcardsFromGPT] Respuesta cruda:', response);
+        console.log('[IA fetchFlashcardsFromGPT] Raw response:', response);
 
-        if (!response || typeof response !== "string") {
-            // isLoading.value = false; // --- ELIMINADO ---
-            throw new Error("La IA no devolvió datos válidos (revisa tu modelo o prompt).");
+        if (!response || typeof response !== 'string') {
+            throw new Error('AI did not return valid data (check model or prompt).');
         }
 
         const flashcards = response
@@ -40,13 +62,14 @@ Devuelve solo las flashcards, una por línea, siguiendo la estructura. No incluy
             .map(str => str.trim())
             .filter(Boolean);
 
-        console.log('[IA fetchFlashcardsFromGPT] Flashcards procesadas:', flashcards);
+        console.log('[IA fetchFlashcardsFromGPT] Processed flashcards:', flashcards);
 
-        // isLoading.value = false; // --- ELIMINADO ---
         return flashcards;
     } catch (error) {
-        console.error('Error al obtener datos de Gemini en fetchFlashcardsFromGPT:', error);
-        // isLoading.value = false; // --- ELIMINADO ---
-        throw error; // Relanzar el error para que la función llamadora lo maneje
+        console.error(
+            'Error fetching data from Gemini in fetchFlashcardsFromGPT:',
+            error
+        );
+        throw error;
     }
 };

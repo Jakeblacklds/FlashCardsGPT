@@ -3,533 +3,343 @@ import { StyleSheet, Dimensions, Platform, StatusBar } from 'react-native';
 const { width, height } = Dimensions.get('window');
 const isSmallDevice = width < 375;
 
-// Design system constants
+// --- NUEVO SISTEMA DE DISEÑO (CLEAN & MODERN) ---
 const SPACING = {
-  xs: 4,
-  sm: 8,
-  md: 16,
-  lg: 20,
-  xl: 32
+  xs: 6,
+  sm: 12,
+  md: 20,
+  lg: 24,
+  xl: 40
 };
 
 const COLORS = {
-  primary: '#7209b7',
-  primaryDark: '#5a189a',
-  primaryLight: '#9d4edd',
-  accent: '#ff8800',
-  accentDark: '#ff5400',
-  success: '#4caf50',
-  dark: '#121212',
-  darkSurface: 'rgba(25, 25, 38, 0.93)',
-  lightBackground: '#E6D3F9',
-  white: '#FFFFFF',
+  primary: '#4F46E5', // Indigo
+  primaryDark: '#3730A3',
+  accent: '#06B6D4',  // Cyan Eléctrico
+  success: '#10B981',
+
+  // Fondos
+  lightBackground: '#F8FAFC',
+  darkBackground: '#0F172A',
+
+  // Cristal
+  glass: {
+    borderLight: 'rgba(0, 0, 0, 0.05)',
+    borderDark: 'rgba(255, 255, 255, 0.1)',
+  },
+
   text: {
-    primary: '#43291f',
-    secondary: '#666666',
-    light: '#eeeeee',
-    dark: '#222222'
-  }
+    primaryLight: '#1E293B',
+    secondaryLight: '#64748B',
+    primaryDark: '#F1F5F9',
+    secondaryDark: '#94A3B8',
+  },
+
+  white: '#FFFFFF',
 };
 
 const styles = StyleSheet.create({
-    safeArea: {
-        flex: 1,
-    },
-    gradientContainer: {
-        flex: 1,
-    },
-    scrollViewContent: {
-        paddingTop: Platform.OS === 'ios' ? 0 : StatusBar.currentHeight,
-        paddingBottom: Platform.OS === 'ios' ? 30 : 20,
-        minHeight: Platform.OS === 'ios' ? height - 60 : height,
-        alignItems: 'center',
-        marginTop: 60,
-    },
-    // DARK MODE CONTAINER
-    containerDark: {
-        backgroundColor: COLORS.dark,
-    },
-    // INPUT FIELD DARK
-    inputDark: {
-        color: COLORS.white,
-        backgroundColor: 'rgba(25,25,32,0.97)',
-        borderColor: COLORS.primaryLight,
-    },
-    // TEXT DARK - Universal text
-    textDark: {
-        color: COLORS.text.light,
-    },
-    // Placeholder and subtext
-    placeholderDark: {
-        color: '#888',
-    },
-    // ----
-    backButton: {
-        position: 'absolute',
-        top: Platform.OS === 'ios' ? 10 : StatusBar.currentHeight,
-        left: 15,
-        zIndex: 10,
-        width: 60,
-        height: 60,
-        borderRadius: 30,
-        backgroundColor: 'rgba(0, 0, 0, 0.15)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        ...Platform.select({
-            ios: {
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.15,
-                shadowRadius: 3,
-            },
-            android: {
-                elevation: 3,
-            }
-        }),
-    },
-    robotContainer: {
-        marginTop: Platform.OS === 'ios' ? 20 : 20,
-        alignItems: 'center',
-        marginBottom: SPACING.md,
-    },
-    robotImageWrapper: {
-        position: 'relative',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: SPACING.md,
-    },
-    robotImageWrapperDark: {
-        // Dark mode specific wrapper styling
-    },
-    robotFlashImage: {
-        width: isSmallDevice ? 130 : 160,
-        height: isSmallDevice ? 130 : 160,
-        resizeMode: 'contain',
-    },
-    robotFlashImageDark: {
-        tintColor: COLORS.white,
-        opacity: 0.95,
-    },
-    robotFlashImageSmall: {
-        width: 120,
-        height: 120,
-    },
-    robotGlowEffect: {
-        position: 'absolute',
-        width: isSmallDevice ? 160 : 180,
-        height: isSmallDevice ? 160 : 180,
-        borderRadius: 90,
-        backgroundColor: 'transparent',
-        borderWidth: 2.5,
-        borderColor: 'rgba(181, 23, 158, 0.6)',
-        shadowColor: COLORS.primary,
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.8,
-        shadowRadius: 18,
-        elevation: 12,
-    },
-    additionalText: {
-        color: COLORS.text.primary,
-        fontFamily: 'Pagebash',
-        fontSize: 28,
-        textAlign: 'center',
-        marginBottom: SPACING.xs,
-        paddingHorizontal: SPACING.lg,
-        letterSpacing: 0.5,
-    },
-    additionalTextSmall: {
-        fontSize: 24,
-    },
-    subText: {
-        fontSize: 16,
-        color: COLORS.text.secondary,
-        marginBottom: SPACING.lg,
-        fontFamily: 'WorsSansSemiBold',
-        textAlign: 'center',
-        paddingHorizontal: SPACING.lg,
-        lineHeight: 22,
-        letterSpacing: 0.2,
-    },
-    subTextSmall: {
-        fontSize: 14,
-        marginBottom: SPACING.md,
-        lineHeight: 20,
-    },
-    // INPUT CONTAINER GENERAL + DARK
-    inputContainer: {
-        width: width * 0.85,
-        maxWidth: 350,
-        borderWidth: 2,
-        borderRadius: 18,
-        overflow: 'hidden',
-        marginVertical: isSmallDevice ? SPACING.md : SPACING.lg,
-        backgroundColor: 'rgba(255,255,255,0.92)',
-        ...Platform.select({
-            ios: {
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 3 },
-                shadowOpacity: 0.15,
-                shadowRadius: 8,
-            },
-            android: {
-                elevation: 4,
-            }
-        }),
-    },
-    inputContainerDark: {
-        backgroundColor: 'rgba(20,20,25,0.98)',
-        borderColor: COLORS.primaryLight,
-    },
-    inputContainerSmall: {
-        width: width * 0.85,
-    },
-    input: {
-        padding: SPACING.md,
-        fontSize: 18,
-        textAlign: 'center',
-        fontFamily: 'Pagebash',
-        width: '100%',
-        color: COLORS.text.dark,
-        letterSpacing: 0.3,
-    },
-    inputSmall: {
-        padding: 14,
-        fontSize: 16,
-    },
-    inputIconContainer: {
-        position: 'absolute',
-        right: SPACING.md,
-        top: '50%',
-        transform: [{ translateY: -12 }],
-        padding: SPACING.xs,
-    },
-    // TAGS STYLES
-    tagsContainerWrapper: {
-        width: width * 0.85,
-        maxWidth: 350,
-        marginVertical: isSmallDevice ? SPACING.sm : SPACING.md,
-        marginBottom: SPACING.lg,
-    },
-    sectionTitle: {
-        fontSize: 18,
-        fontFamily: 'WorsSansSemiBold',
-        marginBottom: SPACING.sm,
-        color: COLORS.primaryDark,
-        paddingLeft: SPACING.xs,
-        letterSpacing: 0.3,
-    },
-    sectionTitleSmall: {
-        fontSize: 16,
-        marginBottom: SPACING.xs,
-    },
-    tagsContainer: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'center',
-        marginTop: SPACING.xs,
-    },
-    tag: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 10,
-        paddingHorizontal: 14,
-        borderRadius: 24,
-        margin: 6,
-        borderWidth: 1.5,
-        backgroundColor: 'rgba(255,255,255,0.92)',
-        borderColor: '#d8d8d8',
-        ...Platform.select({
-            ios: {
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.12,
-                shadowRadius: 3,
-            },
-            android: {
-                elevation: 3,
-            }
-        }),
-        transition: 'all 0.3s ease',
-    },
-    tagDark: {
-        backgroundColor: 'rgba(36,36,48,0.98)',
-        borderColor: COLORS.primary,
-    },
-    tagSelected: {
-        backgroundColor: COLORS.primaryLight,
-        borderColor: COLORS.primaryLight,
-        transform: [{ scale: 1.05 }],
-    },
-    tagSmall: {
-        paddingVertical: 8,
-        paddingHorizontal: 12,
-        margin: 5,
-        borderRadius: 20,
-    },
-    tagIcon: {
-        marginRight: 8,
-    },
-    tagText: {
-        fontSize: 15,
-        fontWeight: 'bold',
-        fontFamily: 'WorsSansSemiBold',
-        color: COLORS.primary,
-        letterSpacing: 0.2,
-    },
-    tagTextDark: {
-        color: COLORS.white,
-    },
-    tagTextSelected: {
-        color: COLORS.white,
-    },
-    tagTextSmall: {
-        fontSize: 13,
-    },
-    // SLIDER & COUNTER
-    sliderContainerWrapper: {
-        width: width * 0.85,
-        maxWidth: 350,
-        marginTop: SPACING.md,
-        marginBottom: isSmallDevice ? SPACING.md : SPACING.lg,
-    },
-    sliderContainer: {
-        alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.35)',
-        paddingVertical: isSmallDevice ? SPACING.md : SPACING.lg,
-        paddingHorizontal: SPACING.lg,
-        borderRadius: 20,
-        ...Platform.select({
-            ios: {
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 3 },
-                shadowOpacity: 0.1,
-                shadowRadius: 6,
-            },
-            android: {
-                elevation: 2,
-            }
-        }),
-    },
-    sliderContainerDark: {
-        backgroundColor: COLORS.darkSurface,
-    },
-    sliderText: {
-        color: COLORS.primary,
-        fontSize: 32,
-        fontFamily: 'Pagebash',
-        marginBottom: SPACING.md,
-        letterSpacing: 0.5,
-    },
-    sliderTextDark: {
-        color: COLORS.white,
-    },
-    sliderTextSmall: {
-        fontSize: 28,
-        marginBottom: SPACING.sm,
-    },
-    slider: {
-        width: '92%',
-        height: 40,
-    },
-    sliderSmall: {
-        height: 36,
-    },
-    sliderLabels: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        width: '92%',
-        paddingHorizontal: SPACING.md,
-        marginTop: SPACING.xs,
-    },
-    sliderLabelText: {
-        fontSize: 13,
-        fontFamily: 'WorsSansSemiBold',
-        color: '#555',
-    },
-    sliderLabelTextDark: {
-        color: '#b5b5b5',
-    },
-    // BUTTONS
-    buttonWrapper: {
-        marginBottom: Platform.OS === 'ios' ? SPACING.md : SPACING.sm,
-        marginTop: SPACING.sm,
-    },
-    button: {
-        width: width * 0.85,
-        maxWidth: 350,
-        borderRadius: 28,
-        margin: isSmallDevice ? SPACING.md : SPACING.lg,
-        overflow: 'hidden',
-        ...Platform.select({
-            ios: {
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.25,
-                shadowRadius: 8,
-            },
-            android: {
-                elevation: 6,
-            }
-        }),
-        transform: [{ scale: 1 }], // For animation purposes
-    },
-    buttonSmall: {
-        borderRadius: 24,
-    },
-    buttonGradient: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: isSmallDevice ? 14 : 18,
-    },
-    buttonDisabled: {
-        opacity: 0.5,
-    },
-    buttonText: {
-        color: COLORS.white,
-        fontWeight: 'bold',
-        fontSize: 18,
-        fontFamily: 'Pagebash',
-        letterSpacing: 0.6,
-    },
-    buttonTextSmall: {
-        fontSize: 16,
-    },
-    buttonIcon: {
-        marginRight: SPACING.sm,
-    },
-    debugContainer: {
-        width: width * 0.85,
-        maxWidth: 350,
-        marginTop: SPACING.lg,
-        marginBottom: SPACING.xl,
-        padding: SPACING.md,
-        borderRadius: 14,
-        backgroundColor: 'rgba(255, 255, 255, 0.15)',
-        borderWidth: 1,
-        borderColor: 'rgba(114, 9, 183, 0.2)',
-    },
-    debugText: {
-        fontSize: 13,
-        fontFamily: 'WorsSansSemiBold',
-        color: '#555',
-        lineHeight: 18,
-    },
-    // En AddGpt.styles.js
-fullScreenOverlay: {
+  safeArea: {
+    flex: 1,
+  },
+  gradientContainer: {
+    flex: 1,
+  },
+  scrollViewContent: {
+    paddingTop: Platform.OS === 'ios' ? 0 : StatusBar.currentHeight,
+    paddingBottom: Platform.OS === 'ios' ? 80 : 60,
+    minHeight: Platform.OS === 'ios' ? height - 60 : height,
+    alignItems: 'center',
+    marginTop: 60,
+  },
+
+  // ---- Botón de Regreso ----
+  backButton: {
     position: 'absolute',
+    top: Platform.OS === 'ios' ? 10 : StatusBar.currentHeight + 10,
+    left: 20,
+    zIndex: 10,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(72, 12, 168, 0.92)', // Tu color de fondo
-    // zIndex: 999, // <--- QUITA ESTO de aquí
+    overflow: 'hidden',
   },
-    modalContent: {
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: SPACING.xl,
-        backgroundColor: 'rgba(255, 255, 255, 0.15)',
-        borderRadius: 24,
-        width: width * 0.8,
-        maxWidth: 320,
-    },
-    loadingText: {
-        marginTop: SPACING.md,
-        color: '#d2fbd0',
-        fontSize: isSmallDevice ? 22 : 26,
-        fontFamily: 'Pagebash',
-        textAlign: 'center',
-        letterSpacing: 0.5,
-    },
-    successModal: {
-        position: 'absolute',
-        backgroundColor: COLORS.success,
-        padding: SPACING.md,
-        borderRadius: 24,
-        top: 90,
-        zIndex: 1000,
-        alignSelf: 'center',
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: SPACING.lg,
-        ...Platform.select({
-            ios: {
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.3,
-                shadowRadius: 8,
-            },
-            android: {
-                elevation: 8,
-            }
-        }),
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.3)',
-    },
-    successModalText: {
-        color: COLORS.white,
-        fontSize: 16,
-        fontFamily: 'WorsSansSemiBold',
-        marginLeft: SPACING.md,
-        letterSpacing: 0.3,
-    },
-    // Floating Label modern input
-floatingLabelContainer: {
+
+  // ---- Header (Tipografía Limpia) ----
+  robotContainer: {
+    marginTop: Platform.OS === 'ios' ? 40 : 40,
+    alignItems: 'center',
+    marginBottom: SPACING.lg,
+    paddingHorizontal: SPACING.md,
+  },
+  additionalText: {
+    color: COLORS.text.primaryLight,
+    fontFamily: 'Pagebash',
+    fontSize: 36,
+    textAlign: 'center',
+    marginBottom: SPACING.xs,
+    letterSpacing: -0.5,
+  },
+  additionalTextSmall: {
+    fontSize: 28,
+  },
+  subText: {
+    fontSize: 16,
+    color: COLORS.text.secondaryLight,
+    marginBottom: SPACING.xl,
+    fontFamily: 'WorsSansSemiBold',
+    textAlign: 'center',
+    maxWidth: '80%',
+    lineHeight: 24,
+  },
+  textDark: {
+    color: COLORS.text.primaryDark,
+  },
+  subTextDark: {
+    color: COLORS.text.secondaryDark,
+  },
+
+  // ---- INPUT (Clean Glass) ----
+  floatingLabelContainer: {
     position: 'relative',
-    width: width * 0.85,
-    maxWidth: 350,
-    marginVertical: isSmallDevice ? SPACING.md : SPACING.lg,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.85)',
+    width: width * 0.9,
+    maxWidth: 380,
+    marginVertical: SPACING.md,
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.glass.borderLight,
+    backgroundColor: 'transparent',
+
     ...Platform.select({
       ios: {
-        shadowColor: '#7209b7',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.12,
-        shadowRadius: 14,
+        shadowColor: COLORS.primary, // Sombra Indigo
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
       },
       android: {
-        elevation: 8,
+        elevation: 0,
       }
     }),
-    overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: '#7209b7',
   },
   floatingLabelContainerDark: {
-    backgroundColor: 'rgba(28,20,38,0.96)',
-    borderColor: '#b5179e',
+    borderColor: COLORS.glass.borderDark,
   },
   floatingLabelInput: {
-    height: 54,
+    height: 64,
     fontSize: 18,
-    paddingHorizontal: 16,
-    paddingTop: 24,
-    paddingBottom: 10,
-    color: COLORS.text.dark,
-    fontFamily: 'Pagebash',
-    letterSpacing: 0.2,
+    paddingHorizontal: 20,
+    paddingTop: 26,
+    paddingBottom: 8,
+    color: COLORS.text.primaryLight,
+    fontFamily: 'WorsSansSemiBold',
+    letterSpacing: 0.3,
   },
   floatingLabelInputDark: {
     color: COLORS.white,
   },
   floatingLabel: {
     position: 'absolute',
-    left: 18,
-    top: 18,
+    left: 20,
+    top: 22,
     fontSize: 18,
-    color: '#888',
+    color: COLORS.text.secondaryLight,
     fontFamily: 'WorsSansSemiBold',
-    letterSpacing: 0.2,
     zIndex: 2,
   },
-  floatingLabelDark: {
-    color: '#b5b5b5',
+  inputIconContainer: {
+    position: 'absolute',
+    right: SPACING.md,
+    top: '50%',
+    transform: [{ translateY: -12 }],
   },
-  
+
+  // ---- Contenedores Generales ----
+  bentoBoxWrapper: {
+    width: width * 0.9,
+    maxWidth: 380,
+    marginVertical: SPACING.sm,
+    marginBottom: SPACING.lg,
+  },
+  sectionTitle: {
+    fontSize: 12,
+    fontFamily: 'WorsSansSemiBold',
+    marginBottom: SPACING.sm,
+    color: COLORS.text.secondaryLight,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    paddingLeft: SPACING.xs,
+  },
+  sectionTitleDark: {
+    color: COLORS.text.secondaryDark,
+  },
+
+  bentoBoxContainer: {
+    borderRadius: 24,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.glass.borderLight,
+  },
+  bentoBoxContainerDark: {
+    borderColor: COLORS.glass.borderDark,
+  },
+  bentoBoxPadding: {
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.md,
+  },
+
+  // ---- Tags ----
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-start',
+  },
+  tag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 100,
+    margin: 4,
+    borderWidth: 1,
+    borderColor: COLORS.glass.borderLight,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+  },
+  tagDark: {
+    borderColor: COLORS.glass.borderDark,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  tagSelected: {
+    borderColor: 'transparent',
+  },
+  tagText: {
+    fontSize: 14,
+    fontFamily: 'WorsSansSemiBold',
+    color: COLORS.text.secondaryLight,
+  },
+  tagTextDark: {
+    color: COLORS.text.secondaryDark,
+  },
+  tagTextSelected: {
+    color: COLORS.white,
+    fontWeight: '600',
+  },
+  tagIcon: {
+    marginRight: 6,
+  },
+
+  // ---- Slider Textos ----
+  sliderContent: {
+    alignItems: 'center',
+  },
+  sliderText: {
+    color: COLORS.primary, // Indigo
+    fontSize: 60,
+    fontFamily: 'Pagebash',
+    marginBottom: SPACING.sm,
+  },
+  sliderTextDark: {
+    color: COLORS.white,
+  },
+  slider: {
+    width: '100%',
+    height: 40,
+  },
+
+  // ---- Botón Generar ----
+  buttonWrapper: {
+    marginTop: SPACING.xl,
+    marginBottom: SPACING.xl,
+    alignItems: 'center',
+  },
+  button: {
+    width: width * 0.9,
+    maxWidth: 380,
+    borderRadius: 20,
+    overflow: 'hidden',
+    height: 64,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  buttonGradient: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonDisabled: {
+    opacity: 0.5,
+    shadowOpacity: 0,
+  },
+  buttonText: {
+    color: COLORS.white,
+    fontSize: 18,
+    fontFamily: 'WorsSansSemiBold',
+    letterSpacing: 1,
+    marginLeft: 10,
+  },
+
+  // ---- Debug & Utils ----
+  debugContainer: {
+    width: width * 0.9,
+    marginVertical: SPACING.md,
+    padding: SPACING.md,
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,0,0,0.1)',
+  },
+  debugText: {
+    fontSize: 12,
+    color: COLORS.text.secondaryLight,
+    fontFamily: 'Menlo',
+  },
+
+  fullScreenOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999,
+  },
+  loadingText: {
+    marginTop: SPACING.lg,
+    color: COLORS.white,
+    fontSize: 20,
+    fontFamily: 'WorsSansSemiBold',
+    letterSpacing: 1,
+  },
+  successModal: {
+    position: 'absolute',
+    top: 60,
+    alignSelf: 'center',
+    backgroundColor: COLORS.success,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 100,
+    zIndex: 1000,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+  successModalText: {
+    color: 'white',
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+
+  inputContainerSmall: { width: width * 0.95 },
+  buttonSmall: { height: 56 },
+  buttonTextSmall: { fontSize: 16 },
+  tagSmall: { paddingVertical: 6, paddingHorizontal: 12 },
 });
 
 export default styles;

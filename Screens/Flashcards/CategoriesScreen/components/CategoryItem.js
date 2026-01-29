@@ -1,74 +1,258 @@
-// En tu archivo: /components/CategoryItem.js (o la ruta correcta)
-
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   TouchableOpacity,
   View,
   Text,
   StyleSheet,
-  Image,
   Modal,
   Dimensions,
   Platform,
-  ActivityIndicator,
   Alert,
+  Image,
 } from 'react-native';
+import Svg, { Rect, Path } from 'react-native-svg';
 import { useSelector, useDispatch } from 'react-redux';
-import * as ImagePicker from 'expo-image-picker';
-import { useActionSheet } from '@expo/react-native-action-sheet';
-import { FontAwesome, Feather } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
-import LottieView from 'lottie-react-native';
+import { FontAwesome5, Ionicons } from '@expo/vector-icons';
+import { getColors } from 'react-native-image-colors';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as FileSystem from 'expo-file-system'; // Importa expo-file-system
 
 import { selectDarkMode } from '../../../../redux/darkModeSlice';
-import { fetchImage, upsertImage, deleteImage } from '../../../../db';
-// Ajusta la ruta de importación si es necesario
-import { generateImageWithGemini } from '../../../../geminiApi'; // <--- CAMBIO AQUÍ
-import { fetchFlashcardCountByCategory, selectFlashcardCount } from '../../../../redux/FlashcardSlice';
-import { getRandomColorPair } from '../../../../constants';
+import { fetchFlashcardCountByCategory, selectFlashcardCount, saveCategoryImage } from '../../../../redux/FlashcardSlice';
+import {
+  getCategoryImage,
+  getCategoryEmoji,
+  getCategoryFallbackColor,
+  matchCategoryToKey,
+  hasCategoryImage as checkHasImage,
+} from '../../../../utils/CategoryImageBank';
+import ImageBankSelector from '../../../../components/ImageBankSelector';
+import { IMAGE_BANK } from '../../../../utils/generatedImageBank';
 
 const { width } = Dimensions.get('window');
-const CARD_WIDTH = width * 0.9;
-const CARD_HEIGHT = 180;
 
-const CategoryItem = ({ category, onPress, onDelete, initialColorPair, initialImageUri }) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const colorPair = useMemo(() => initialColorPair || getRandomColorPair(), [initialColorPair]);
-  const [categoryImageUri, setCategoryImageUri] = useState(initialImageUri || null);
-  const [isImagePickerModalVisible, setImagePickerModalVisible] = useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);
+// Grid calculations
+const NUM_COLUMNS = 2;
+const SCREEN_PADDING = 16;
+const ITEM_GAP = 12;
+const TOTAL_AVAILABLE_WIDTH = width - (SCREEN_PADDING * 2) - (ITEM_GAP * (NUM_COLUMNS - 1));
+const CARD_WIDTH = Math.floor(TOTAL_AVAILABLE_WIDTH / NUM_COLUMNS);
+const CARD_HEIGHT = CARD_WIDTH * 1.25;
+
+const retroFont = Platform.OS === 'ios' ? 'Menlo' : 'monospace';
+
+// Helper to get contrast color
+const getContrastColor = (hexcolor) => {
+  if (!hexcolor) return '#FFF';
+  let hex = hexcolor.replace('#', '');
+  if (hex.length === 3) hex = hex.split('').map(x => x + x).join('');
+  const r = parseInt(hex.substr(0, 2), 16);
+  const g = parseInt(hex.substr(2, 2), 16);
+  const b = parseInt(hex.substr(4, 2), 16);
+  const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+  return yiq >= 150 ? '#1a1a2e' : '#FFFFFF';
+};
+
+// Helper to check if a color is dark (for choosing text colors)
+const isColorDark = (hexcolor) => {
+  if (!hexcolor) return true;
+  let hex = hexcolor.replace('#', '');
+  if (hex.length === 3) hex = hex.split('').map(x => x + x).join('');
+  const r = parseInt(hex.substr(0, 2), 16);
+  const g = parseInt(hex.substr(2, 2), 16);
+  const b = parseInt(hex.substr(4, 2), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance < 0.5;
+};
+
+// -------------------------------------------------------------------------
+// CARTUCHO CONTAINER (GameBoy Style)
+// -------------------------------------------------------------------------
+const CartuchoContainer = ({
+  children,
+  cardWidth = CARD_WIDTH,
+  cardHeight = CARD_HEIGHT,
+  mainColor = "#5DBC67",
+  darkMode = false,
+}) => {
+  const notchColor = darkMode ? "#1a1a2e" : "#fff";
+  const r = 10;
+  const cutSize = 14;
+  const sr = 5;
+  const notchWidth = 8;
+  const notchHeight = 3;
+  const notchSpacing = 3;
+  const topOffsetPos = 22;
+
+  const renderNotches = (xPosition) => (
+    <>
+      <Rect x={xPosition} y={topOffsetPos} width={notchWidth} height={notchHeight} fill={notchColor} rx={1} />
+      <Rect x={xPosition} y={topOffsetPos + notchHeight + notchSpacing} width={notchWidth} height={notchHeight} fill={notchColor} rx={1} />
+      <Rect x={xPosition} y={topOffsetPos + (notchHeight + notchSpacing) * 2} width={notchWidth} height={notchHeight} fill={notchColor} rx={1} />
+    </>
+  );
+
+  const bodyPath = `
+    M 0 ${r}
+    A ${r} ${r} 0 0 1 ${r} 0
+    L ${cardWidth - cutSize - sr} 0
+    A ${sr} ${sr} 0 0 1 ${cardWidth - cutSize} ${sr}
+    L ${cardWidth - cutSize} ${cutSize - sr}
+    A ${sr} ${sr} 0 0 0 ${cardWidth - cutSize + sr} ${cutSize}
+    L ${cardWidth - sr} ${cutSize}
+    A ${sr} ${sr} 0 0 1 ${cardWidth} ${cutSize + sr}
+    L ${cardWidth} ${cardHeight - r}
+    A ${r} ${r} 0 0 1 ${cardWidth - r} ${cardHeight}
+    L ${r} ${cardHeight}
+    A ${r} ${r} 0 0 1 0 ${cardHeight - r}
+    Z
+  `;
+
+  const insetColor = darkMode ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.15)';
+
+  return (
+    <View style={[stylesCartucho.container, { width: cardWidth, height: cardHeight }]}>
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        <Svg width="100%" height="100%" viewBox={`0 0 ${cardWidth} ${cardHeight}`}>
+          <Path d={bodyPath} fill={mainColor} stroke={"rgba(0,0,0,0.15)"} strokeWidth={1} />
+          <Rect
+            x={cardWidth * 0.08}
+            y={cardHeight * 0.22}
+            width={cardWidth * 0.84}
+            height={cardHeight * 0.72}
+            rx={6}
+            fill={insetColor}
+          />
+          {renderNotches(-1)}
+          {renderNotches(cardWidth - notchWidth + 1)}
+        </Svg>
+      </View>
+      <View style={stylesCartucho.contentArea}>
+        {children}
+      </View>
+    </View>
+  );
+};
+
+const stylesCartucho = StyleSheet.create({
+  container: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 6,
+    position: 'relative',
+  },
+  contentArea: {
+    position: 'absolute',
+    top: '22%',
+    left: '8%',
+    right: '8%',
+    bottom: '6%',
+    borderRadius: 6,
+    overflow: 'hidden',
+  },
+});
+
+// -------------------------------------------------------------------------
+// CATEGORY ITEM COMPONENT 
+// -------------------------------------------------------------------------
+const CategoryItem = ({
+  category,
+  onPress,
+  onDelete,
+  initialColorPair,
+}) => {
+  const [isOptionsModalVisible, setOptionsModalVisible] = useState(false);
+  const [isImageSelectorVisible, setImageSelectorVisible] = useState(false);
+  const [extractedColor, setExtractedColor] = useState(null);
+
+  // Leer imageKey guardada en la categoría (desde Firebase/Redux)
+  const savedImageKey = typeof category === 'object' ? category?.imageKey : null;
 
   const darkModeEnabled = useSelector(selectDarkMode);
   const currentUserUID = useSelector(state => state.flashcards.currentUserUID);
   const dispatch = useDispatch();
-  const { showActionSheetWithOptions } = useActionSheet();
 
   const categoryId = typeof category === 'string' ? category : category?.id;
-  const categoryName = typeof category === 'string' ? category : category?.name; // Para el prompt
+  const categoryName = typeof category === 'string' ? category : category?.name;
   const flashcardCount = useSelector(state => selectFlashcardCount(state, categoryId));
 
-  useEffect(() => {
-    let isMounted = true;
-    if (!initialImageUri && categoryId) {
-      setIsLoading(true);
-      fetchImage(categoryId)
-        .then(imageData => {
-          if (isMounted && imageData) {
-            setCategoryImageUri(imageData.uri);
-          }
-        })
-        .catch(console.error)
-        .finally(() => {
-          if (isMounted) setIsLoading(false);
-        });
-    } else if (initialImageUri) {
-      setCategoryImageUri(initialImageUri);
+  // Get the image source, emoji and color for this category
+  const categoryKey = useMemo(() => matchCategoryToKey(categoryName), [categoryName]);
+
+  // Use saved image key if set, otherwise auto-detect
+  const categoryImage = useMemo(() => {
+    if (savedImageKey && IMAGE_BANK[savedImageKey]) {
+      return IMAGE_BANK[savedImageKey].image;
     }
-    return () => { isMounted = false; };
-  }, [categoryId, initialImageUri]);
+    return getCategoryImage(categoryName);
+  }, [categoryName, savedImageKey]);
+
+  const categoryEmoji = useMemo(() => {
+    if (savedImageKey && IMAGE_BANK[savedImageKey]) {
+      return IMAGE_BANK[savedImageKey].emoji;
+    }
+    return getCategoryEmoji(categoryName);
+  }, [categoryName, savedImageKey]);
+
+  const fallbackColor = useMemo(() => getCategoryFallbackColor(categoryName), [categoryName]);
+  const hasImage = categoryImage !== null;
+
+  // Extract colors from the category image (only if image exists)
+  // Extrae: backgroundColor (fondo de la imagen) y accentColor (elementos/texto)
+  const [colorPalette, setColorPalette] = useState({
+    background: null,
+    accent: null,
+  });
+
+  useEffect(() => {
+    if (!hasImage || !categoryImage) return;
+
+    const extractColors = async () => {
+      try {
+        const { uri } = Image.resolveAssetSource(categoryImage);
+
+        const result = await getColors(uri, {
+          fallback: fallbackColor,
+          cache: true,
+          key: savedImageKey || categoryKey,
+        });
+
+        let bgColor, accentColor;
+
+        if (Platform.OS === 'android') {
+          // Android: background es el color dominante/average, accent es vibrant/muted
+          bgColor = result.dominant || result.average || result.vibrant;
+          accentColor = result.vibrant || result.lightVibrant || result.muted;
+        } else {
+          // iOS: background es el fondo, accent viene de primary/detail
+          bgColor = result.background || result.primary;
+          accentColor = result.primary || result.detail || result.secondary;
+        }
+
+        // Si el accent es muy oscuro, buscar alternativa más clara para texto
+        if (accentColor) {
+          const isAccentDark = isColorDark(accentColor);
+          if (isAccentDark && Platform.OS === 'android') {
+            // Preferir lightVibrant o lightMuted para texto si están disponibles
+            accentColor = result.lightVibrant || result.lightMuted || accentColor;
+          } else if (isAccentDark && Platform.OS === 'ios') {
+            accentColor = result.secondary || result.detail || accentColor;
+          }
+        }
+
+        setColorPalette({
+          background: bgColor || fallbackColor,
+          accent: accentColor || bgColor || fallbackColor,
+        });
+        setExtractedColor(bgColor);
+      } catch (error) {
+        console.log('Color extraction error:', error);
+      }
+    };
+
+    extractColors();
+  }, [categoryImage, categoryKey, savedImageKey, fallbackColor, hasImage]);
 
   useEffect(() => {
     if (currentUserUID && categoryId) {
@@ -77,411 +261,362 @@ const CategoryItem = ({ category, onPress, onDelete, initialColorPair, initialIm
   }, [currentUserUID, categoryId, dispatch]);
 
   const handleDelete = () => onDelete(categoryId);
-  const handleSelectImage = () => setImagePickerModalVisible(true);
 
-  const handleChooseFromGallery = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 1,
-      });
+  // Colors - Usando la paleta extraída de la imagen
+  const mainColor = colorPalette.background || extractedColor || fallbackColor;
+  const accentColor = colorPalette.accent || mainColor;
+  const textOnColor = getContrastColor(mainColor);
+  const screenBg = darkModeEnabled ? '#0a0a14' : '#f0f4f8';
+  const textPrimary = darkModeEnabled ? '#FFFFFF' : '#1a1a2e';
+  const textSecondary = darkModeEnabled ? 'rgba(255,255,255,0.6)' : 'rgba(26,26,46,0.5)';
 
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const imageUri = result.assets[0].uri;
-        if (!imageUri) {
-          throw new Error('No se pudo obtener la URI de la imagen');
-        }
-        setIsLoading(true);
-        await upsertImage(categoryId, imageUri);
-        setCategoryImageUri(imageUri);
-        setImageLoaded(false);
-        Alert.alert('Éxito', 'Imagen guardada correctamente');
-      }
-    } catch (error) {
-      console.error('Error en handleChooseFromGallery:', error);
-      Alert.alert('Error', `No se pudo seleccionar la imagen: ${error.message || error}`);
-    } finally {
-      setIsLoading(false);
-      setImagePickerModalVisible(false);
-    }
+  // Para texto sobre el cartucho, usar accent si es suficientemente claro, sino blanco
+  const decorativeColor = isColorDark(accentColor) ? '#FFFFFF' : accentColor;
+
+  // Color pair to pass to FlashcardList
+  const colorPairToPass = {
+    background: mainColor,
+    text: textOnColor,
+    accent: accentColor,
   };
-
-  // Renombrado de handleGenerateDalleImage a handleGenerateAIImage
-  const handleGenerateAIImage = async () => {
-    setImagePickerModalVisible(false);
-    setIsGenerating(true);
-    try {
-      const prompt = `Modern vibrant illustration style, about ${categoryName || 'generic category'}, flashcard app category icon, high quality, clear subject`;
-      console.log("Generando imagen con Gemini, prompt:", prompt);
-
-      const base64ImageData = await generateImageWithGemini(prompt);
-
-      if (!base64ImageData) {
-        throw new Error('No se recibieron datos de imagen de Gemini.');
-      }
-
-      // Guardar imagen base64 en un archivo local
-      const filename = `gemini_image_${categoryId}_${Date.now()}.png`;
-      // Usar cacheDirectory para archivos temporales que el sistema puede limpiar,
-      // o documentDirectory para archivos más persistentes que tu app gestiona.
-      const filePath = `${FileSystem.cacheDirectory}${filename}`;
-      
-      console.log(`Intentando escribir imagen en: ${filePath}`);
-      await FileSystem.writeAsStringAsync(filePath, base64ImageData, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-      console.log('Imagen escrita en el sistema de archivos exitosamente:', filePath);
-
-      // filePath es una URI local (ej. 'file:///...')
-      await upsertImage(categoryId, filePath); // upsertImage debe poder manejar URIs de archivos locales
-      setCategoryImageUri(filePath);
-      setImageLoaded(false);
-      Alert.alert('Éxito', 'Imagen generada con IA (Gemini) y guardada correctamente');
-
-    } catch (error) {
-      console.error('Error generando imagen con Gemini en CategoryItem:', error);
-      Alert.alert(
-        'Error de IA (Gemini)',
-        `No se pudo generar la imagen: ${error.message || 'Intenta de nuevo.'}`,
-        [{ text: 'OK' }]
-      );
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const handleDeleteImage = async () => {
-    setIsLoading(true);
-    try {
-      await deleteImage(categoryId);
-      setCategoryImageUri(null);
-      setImageLoaded(false);
-      Alert.alert('Éxito', 'Imagen eliminada');
-    } catch (error) {
-      console.error('Error deleting image:', error);
-      Alert.alert('Error', 'No se pudo eliminar la imagen. Por favor, intenta de nuevo.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const showMenu = (event) => {
-    if (event) event.stopPropagation();
-    const imageRelatedOptions = categoryImageUri ? ['Eliminar Imagen'] : ['Agregar Imagen'];
-    const options = ['Editar Categoría', ...imageRelatedOptions, 'Eliminar Categoría', 'Cancelar'];
-    const destructiveButtonIndices = [options.indexOf('Eliminar Categoría')];
-    if (options.indexOf('Eliminar Imagen') !== -1 && categoryImageUri) { // Solo si la opción existe y hay imagen
-        // destructiveButtonIndices.push(options.indexOf('Eliminar Imagen')); // Opcional: hacerla destructiva
-    }
-    const cancelButtonIndex = options.indexOf('Cancelar');
-
-    showActionSheetWithOptions({
-      options,
-      cancelButtonIndex,
-      destructiveButtonIndex: destructiveButtonIndices.length > 0 ? destructiveButtonIndices[0] : undefined, // Solo una opción destructiva principal
-      title: `Opciones para "${categoryName || 'Categoría'}"`,
-      tintColor: darkModeEnabled ? '#4895ef' : '#007AFF',
-      userInterfaceStyle: darkModeEnabled ? 'dark' : 'light',
-    }, (buttonIndex) => {
-      if (buttonIndex === null || buttonIndex === undefined || buttonIndex === cancelButtonIndex) return;
-      const selectedOption = options[buttonIndex];
-      switch (selectedOption) {
-        case 'Editar Categoría':
-          Alert.alert('Editar', `Editar categoría: ${categoryName}`);
-          break;
-        case 'Agregar Imagen':
-          handleSelectImage();
-          break;
-        case 'Eliminar Imagen':
-          handleDeleteImage();
-          break;
-        case 'Eliminar Categoría':
-          Alert.alert(
-            "Confirmar Eliminación",
-            `¿Estás seguro de que quieres eliminar la categoría "${categoryName || ''}" y todas sus flashcards? Esta acción no se puede deshacer.`,
-            [{ text: "Cancelar", style: "cancel" }, { text: "Eliminar", style: "destructive", onPress: handleDelete }]
-          );
-          break;
-        default: break;
-      }
-    });
-  };
-  
-  const styles = getStyles(darkModeEnabled, colorPair); // Asumo que getStyles está definido
-  const gradientColors = darkModeEnabled
-    ? ['rgba(0,0,0,0.2)', 'rgba(0,0,0,0.9)']
-    : ['rgba(255,255,255,0.0)', colorPair?.background || '#EEEEEE'];
 
   return (
     <>
       <TouchableOpacity
-        style={styles.categoryCard}
-        activeOpacity={0.85}
-        onPress={() => onPress(category, colorPair, categoryImageUri)}
+        style={styles.touchableWrapper}
+        activeOpacity={0.9}
+        onPress={() => onPress(category, colorPairToPass, null)}
       >
-        {(isGenerating || isLoading) && (
-            <View style={styles.uploadOverlay}> 
-                <ActivityIndicator size="large" color="#FFF" />
-                <Text style={styles.uploadText}>
-                    {isGenerating ? "Generando imagen IA..." : 
-                     (isLoading ? "Procesando..." : "")} 
-                </Text>
-            </View>
-        )}
-        
-        {isGenerating && ( 
-            <View style={styles.lottieOverlay}>
-                <LottieView
-                    source={require('../../../../assets/loadimg2.json')} 
-                    autoPlay
-                    loop
-                    speed={0.8}
-                    style={styles.lottie}
-                />
-            </View>
-        )}
+        <CartuchoContainer
+          cardWidth={CARD_WIDTH}
+          cardHeight={CARD_HEIGHT}
+          mainColor={mainColor}
+          darkMode={darkModeEnabled}
+        >
+          {/* LCD Screen - Nuevo diseño horizontal estilo Pokédex */}
+          <View style={[styles.lcdScreen, { backgroundColor: darkModeEnabled ? '#1a1a2e' : '#f0f4f8' }]}>
 
-        <View style={styles.imageContainer}>
-          {categoryImageUri ? (
-            <>
-              {!imageLoaded && !isGenerating && <ActivityIndicator style={styles.imageLoader} color={darkModeEnabled ? "#FFF" : "#000"} /> }
-              <Image
-                source={{ uri: categoryImageUri }}
-                style={styles.backgroundImage}
-                onLoadStart={() => setImageLoaded(false)} 
-                onLoad={() => setImageLoaded(true)}
-                onError={(errorEvent) => {
-                    console.error('Error al cargar imagen en componente Image:', errorEvent.nativeEvent.error); 
-                    setImageLoaded(true); // Para ocultar el loader si falla
-                    // Considera limpiar categoryImageUri si la imagen no se puede cargar persistentemente
-                    // setCategoryImageUri(null); 
-                    // Alert.alert("Error de Carga", "No se pudo mostrar la imagen de la categoría.");
-                }}
-              />
-            </>
-          ) : (
-            !isGenerating && !isLoading && (
-                <View style={styles.placeholderBackground}>
-                <FontAwesome name="image" size={50} color={`${colorPair?.text || (darkModeEnabled ? '#FFFFFF' : '#000000')}55`} />
+            {/* Header con número */}
+            <View style={[styles.lcdHeader, { backgroundColor: mainColor }]}>
+              <Text style={styles.slotLabel}>#{String(flashcardCount).padStart(3, '0')}</Text>
+              <TouchableOpacity
+                style={styles.menuButtonHeader}
+                onPress={() => setOptionsModalVisible(true)}
+                hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+              >
+                <Ionicons name="ellipsis-horizontal" size={14} color="#FFF" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Contenido principal - Layout horizontal */}
+            <View style={styles.lcdContentHorizontal}>
+
+              {/* Marco de imagen a la izquierda */}
+              <View style={[styles.imageFrame, { borderColor: mainColor }]}>
+                {hasImage ? (
+                  <Image
+                    source={categoryImage}
+                    style={styles.frameImage}
+                    resizeMode="contain"
+                  />
+                ) : (
+                  <View style={[styles.emojiFrame, { backgroundColor: `${mainColor}20` }]}>
+                    <Text style={styles.frameEmoji}>{categoryEmoji}</Text>
+                  </View>
+                )}
+              </View>
+
+              {/* Info a la derecha */}
+              <View style={styles.infoContainer}>
+                {/* Nombre de categoría */}
+                <Text
+                  style={[styles.categoryNameNew, { color: darkModeEnabled ? '#FFF' : '#1a1a2e' }]}
+                  numberOfLines={2}
+                >
+                  {categoryName?.toUpperCase() || 'CATEGORY'}
+                </Text>
+
+                {/* Línea decorativa - usa accent color de los elementos de la imagen */}
+                <View style={[styles.decorativeLine, { backgroundColor: accentColor }]} />
+
+                {/* Stats */}
+                <View style={styles.statsRow}>
+                  <FontAwesome5 name="layer-group" size={11} color={accentColor} />
+                  <Text style={[styles.statsText, { color: darkModeEnabled ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)' }]}>
+                    {flashcardCount} CARDS
+                  </Text>
                 </View>
-            )
-          )}
-          <LinearGradient colors={gradientColors} style={styles.gradientOverlay} />
-        </View>
-
-        <TouchableOpacity style={styles.menuButton} onPress={showMenu}>
-            <Feather name="more-vertical" size={24} color={colorPair?.text || (darkModeEnabled ? '#FFFFFF' : '#000000')} />
-        </TouchableOpacity>
-
-        <View style={styles.contentContainer}>
-            <Text style={styles.categoryName} numberOfLines={2}>
-                {categoryName || "Categoría sin nombre"} 
-            </Text>
-            <View style={styles.flashcardCountBadge}>
-                <Text style={styles.categoryDescription}>
-                    {flashcardCount} flashcards
-                </Text>
+              </View>
             </View>
-        </View>
+
+            {/* Footer con indicador de color usando accent */}
+            <View style={[styles.lcdFooterNew, { backgroundColor: `${accentColor}15` }]}>
+              <View style={[styles.colorIndicator, { backgroundColor: accentColor }]} />
+              <Text style={[styles.footerLabel, { color: darkModeEnabled ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)' }]}>
+                ◆ FLASHCARDEX ◆
+              </Text>
+            </View>
+          </View>
+        </CartuchoContainer>
       </TouchableOpacity>
 
+      {/* Options Modal */}
       <Modal
+        visible={isOptionsModalVisible}
         transparent
-        visible={isImagePickerModalVisible}
-        onRequestClose={() => {
-            if (isLoading) setIsLoading(false);
-            if (isGenerating) setIsGenerating(false);
-            setImagePickerModalVisible(false);
-        }}
         animationType="fade"
+        onRequestClose={() => setOptionsModalVisible(false)}
       >
-        <BlurView intensity={Platform.OS === 'ios' ? 80 : 100} style={styles.blurView} tint={darkModeEnabled ? "dark" : "light"}>
-          <View style={styles.modalView}>
-            <Text style={styles.modalTitle}>Añadir Imagen</Text>
-            <Text style={styles.modalText}>Elige una opción para "{categoryName || "esta categoría"}":</Text>
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setOptionsModalVisible(false)}
+        >
+          <View style={[styles.optionModalBox, {
+            backgroundColor: darkModeEnabled ? '#1a1a2e' : '#FFF',
+            borderColor: mainColor,
+          }]}>
+            <View style={[styles.modalHeader, { backgroundColor: mainColor }]}>
+              <Text style={[styles.modalHeaderText, { color: textOnColor }]}>
+                {categoryName?.toUpperCase()}
+              </Text>
+            </View>
 
-            <TouchableOpacity style={styles.modalButton} onPress={handleChooseFromGallery}>
-              <FontAwesome name="photo" size={20} color={styles.modalButtonText.color} style={styles.buttonIcon} />
-              <Text style={styles.modalButtonText}>Elegir de Galería</Text>
-            </TouchableOpacity>
-
-            {/* LLAMADA A LA NUEVA FUNCIÓN */}
-            <TouchableOpacity style={styles.modalButton} onPress={handleGenerateAIImage}> 
-              <FontAwesome name="magic" size={20} color={styles.modalButtonText.color} style={styles.buttonIcon} />
-              <Text style={styles.modalButtonText}>Generar con IA (Gemini)</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-                style={styles.cancelButton} 
-                onPress={() => setImagePickerModalVisible(false)}
+            <TouchableOpacity
+              style={[styles.optionButton, { borderBottomColor: darkModeEnabled ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}
+              onPress={() => {
+                setOptionsModalVisible(false);
+                setImageSelectorVisible(true);
+              }}
             >
-              <Text style={styles.cancelButtonText}>Cancelar</Text>
+              <FontAwesome5 name="image" size={14} color={mainColor} />
+              <Text style={[styles.optionButtonText, { color: textPrimary }]}>Change Image</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.optionButton, { borderBottomColor: darkModeEnabled ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}
+              onPress={() => {
+                setOptionsModalVisible(false);
+                Alert.alert('Edit', `Rename: ${categoryName}`);
+              }}
+            >
+              <FontAwesome5 name="edit" size={14} color={mainColor} />
+              <Text style={[styles.optionButtonText, { color: textPrimary }]}>Rename Category</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.optionButton}
+              onPress={() => {
+                setOptionsModalVisible(false);
+                Alert.alert(
+                  "Delete Category",
+                  `Are you sure you want to delete "${categoryName}"?`,
+                  [
+                    { text: "Cancel", style: "cancel" },
+                    { text: "Delete", style: "destructive", onPress: handleDelete }
+                  ]
+                );
+              }}
+            >
+              <FontAwesome5 name="trash-alt" size={14} color="#EF4444" />
+              <Text style={[styles.optionButtonText, { color: '#EF4444' }]}>Delete Category</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => setOptionsModalVisible(false)}
+            >
+              <Text style={[styles.cancelButtonText, { color: textSecondary }]}>CANCEL</Text>
             </TouchableOpacity>
           </View>
-        </BlurView>
+        </TouchableOpacity>
       </Modal>
+
+      {/* Image Bank Selector Modal */}
+      <ImageBankSelector
+        visible={isImageSelectorVisible}
+        onClose={() => setImageSelectorVisible(false)}
+        onSelect={(key, imageSource) => {
+          // Guardar la imageKey en Firebase para persistencia
+          dispatch(saveCategoryImage(categoryId, key));
+          // Reset extracted color so it re-extracts from new image
+          setExtractedColor(null);
+        }}
+        selectedKey={savedImageKey}
+        darkMode={darkModeEnabled}
+      />
     </>
   );
 };
 
-// Asegúrate de que getStyles esté definido en alguna parte de tu archivo o importado.
-// const getStyles = (darkModeEnabled, colorPair) => StyleSheet.create({ ... });
-// Por ejemplo:
-const getStyles = (darkModeEnabled, colorPair) => {
-    const defaultLightColorPair = { background: '#EEEEEE', text: '#000000' };
-    const defaultDarkColorPair = { background: '#333333', text: '#FFFFFF' };
-    let currentPair = colorPair;
-    if (!currentPair || typeof currentPair.background !== 'string' || typeof currentPair.text !== 'string') {
-        currentPair = darkModeEnabled ? defaultDarkColorPair : defaultLightColorPair;
-    }
-    
-    const safeTextColor = currentPair.text;
-    const safeBackgroundColor = currentPair.background;
+const styles = StyleSheet.create({
+  touchableWrapper: {
+    marginVertical: 6,
+  },
 
-    const modalBackgroundColor = darkModeEnabled ? 'rgba(30, 30, 30, 0.97)' : 'rgba(242, 242, 247, 0.97)';
-    const modalTextColor = darkModeEnabled ? '#EFEFEF' : '#1C1C1E';
-    const modalButtonColor = darkModeEnabled ? '#2C2C2E' : '#FFFFFF'; 
-    const modalButtonBorderColor = darkModeEnabled ? 'rgba(80,80,80,0.7)' : 'rgba(200,200,200,0.5)';
-    const primaryActionColor = darkModeEnabled ? '#0A84FF' : '#007AFF';
+  // LCD Screen
+  lcdScreen: {
+    flex: 1,
+    borderRadius: 5,
+    overflow: 'hidden',
+  },
 
-    return StyleSheet.create({
-        categoryCard: {
-            width: CARD_WIDTH,
-            height: CARD_HEIGHT,
-            borderRadius: 28,
-            marginVertical: 12,
-            marginHorizontal: (width - CARD_WIDTH) / 2,
-            backgroundColor: safeBackgroundColor,
-            position: 'relative',
-            overflow: 'hidden',
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 6 : 4 },
-            shadowOpacity: darkModeEnabled ? 0.35 : 0.12,
-            shadowRadius: Platform.OS === 'ios' ? 12 : 8,
-            elevation: Platform.OS === 'android' ? 8 : 0,
-        },
-        imageContainer: { ...StyleSheet.absoluteFillObject },
-        backgroundImage: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
-        imageLoader: { 
-            ...StyleSheet.absoluteFillObject,
-            justifyContent: 'center',
-            alignItems: 'center',
-            backgroundColor: 'transparent', // Hacer transparente para que no oculte la imagen parcialmente cargada
-            zIndex: 1, 
-        },
-        placeholderBackground: {
-            ...StyleSheet.absoluteFillObject,
-            justifyContent: 'center',
-            alignItems: 'center',
-            backgroundColor: `${safeTextColor}1A`, 
-        },
-        gradientOverlay: { ...StyleSheet.absoluteFillObject, zIndex: 2 }, 
-        contentContainer: { position: 'absolute', bottom: 16, left: 20, right: 20, zIndex: 3 }, 
-        categoryName: {
-            fontSize: 26,
-            fontFamily: 'Pagebash', 
-            fontWeight: 'bold',
-            color: safeTextColor,
-            marginBottom: 8,
-            textShadowColor: 'rgba(0, 0, 0, 0.45)',
-            textShadowOffset: { width: 0, height: 2 },
-            textShadowRadius: 5,
-        },
-        flashcardCountBadge: {
-            backgroundColor: `${safeTextColor}33`, 
-            borderRadius: 12,
-            paddingVertical: 5,
-            paddingHorizontal: 12,
-            alignSelf: 'flex-start',
-        },
-        categoryDescription: { fontSize: 14, color: safeTextColor, fontWeight: '500' },
-        menuButton: {
-            position: 'absolute',
-            top: 16,
-            right: 16,
-            zIndex: 4, 
-            backgroundColor: darkModeEnabled ? 'rgba(50,50,50,0.6)' : 'rgba(250,250,250,0.6)',
-            borderRadius: 16,
-            padding: 7,
-        },
-        uploadOverlay: { 
-            ...StyleSheet.absoluteFillObject,
-            backgroundColor: 'rgba(0,0,0,0.75)',
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 100, 
-            borderRadius: 28, 
-        },
-        uploadText: { color: '#FFF', fontSize: 17, fontWeight: '500', marginTop: 15 },
-        lottieOverlay: { 
-            ...StyleSheet.absoluteFillObject,
-            backgroundColor: 'rgba(0,0,0,0.7)', 
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 101, 
-            borderRadius: 28,
-        },
-        lottie: { width: 170, height: 170 },
-        blurView: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-        modalView: {
-            width: Platform.OS === 'ios' ? '88%' : '92%',
-            maxWidth: 400,
-            backgroundColor: modalBackgroundColor,
-            borderRadius: Platform.OS === 'ios' ? 26 : 20,
-            paddingVertical: Platform.OS === 'ios' ? 22 : 20,
-            paddingHorizontal: Platform.OS === 'ios' ? 20 : 18,
-            alignItems: 'center',
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 10 : 6 },
-            shadowOpacity: darkModeEnabled ? 0.3 : 0.15,
-            shadowRadius: Platform.OS === 'ios' ? 20 : 12,
-            elevation: Platform.OS === 'android' ? 10 : 0,
-            borderWidth: Platform.OS === 'android' && darkModeEnabled ? 0.5 : 0,
-            borderColor: modalButtonBorderColor,
-        },
-        modalTitle: {
-            fontSize: 20,
-            fontWeight: Platform.OS === 'ios' ? '600' : 'bold',
-            color: modalTextColor,
-            marginBottom: 8,
-            marginTop: Platform.OS === 'ios' ? 5 : 0,
-        },
-        modalText: {
-            fontSize: 15,
-            textAlign: 'center',
-            color: darkModeEnabled ? `${modalTextColor}C0` : `${modalTextColor}B3`, // Opacidad ajustada
-            marginBottom: 25,
-            lineHeight: 21,
-            paddingHorizontal: 10,
-        },
-        modalButton: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: modalButtonColor,
-            paddingVertical: Platform.OS === 'ios' ? 15 : 14,
-            paddingHorizontal: 20,
-            marginBottom: 12,
-            borderRadius: Platform.OS === 'ios' ? 14 : 12,
-            width: '100%',
-            borderWidth: Platform.OS === 'android' ? 0.7 : 0, // Borde sutil en Android
-            borderColor: modalButtonBorderColor,
-        },
-        buttonIcon: { marginRight: 12 },
-        modalButtonText: {
-            fontSize: 17,
-            fontWeight: Platform.OS === 'ios' ? '500' : '600', // Ajuste de peso
-            color: primaryActionColor,
-        },
-        cancelButton: { marginTop: 8, paddingVertical: 12, paddingHorizontal: 20 },
-        cancelButtonText: {
-            fontSize: 16,
-            fontWeight: '500',
-            color: darkModeEnabled ? '#8A8A8E' : '#555555', // Color de cancelación estándar
-        },
-    });
-};
+  // Header
+  lcdHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  slotLabel: {
+    fontSize: 10,
+    fontFamily: retroFont,
+    fontWeight: 'bold',
+    color: '#FFF',
+    letterSpacing: 1,
+  },
+  menuButtonHeader: {
+    padding: 4,
+    borderRadius: 4,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+  },
+
+  // Contenido horizontal
+  lcdContentHorizontal: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    gap: 10,
+  },
+
+  // Marco de imagen
+  imageFrame: {
+    width: 52,
+    height: 52,
+    borderRadius: 8,
+    borderWidth: 2,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  frameImage: {
+    width: '100%',
+    height: '100%',
+  },
+  emojiFrame: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  frameEmoji: {
+    fontSize: 26,
+  },
+
+  // Info container
+  infoContainer: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  categoryNameNew: {
+    fontSize: 11,
+    fontFamily: retroFont,
+    fontWeight: 'bold',
+    letterSpacing: 0.3,
+    lineHeight: 14,
+  },
+  decorativeLine: {
+    height: 2,
+    width: '60%',
+    borderRadius: 1,
+    marginVertical: 4,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  statsText: {
+    fontSize: 9,
+    fontFamily: retroFont,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+  },
+
+  // Footer nuevo
+  lcdFooterNew: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 4,
+    gap: 6,
+  },
+  colorIndicator: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  footerLabel: {
+    fontSize: 7,
+    fontFamily: retroFont,
+    fontWeight: '600',
+    letterSpacing: 1,
+  },
+  menuButton: {
+    padding: 6,
+    borderRadius: 6,
+  },
+
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  optionModalBox: {
+    width: '85%',
+    maxWidth: 320,
+    borderRadius: 12,
+    borderWidth: 3,
+    overflow: 'hidden',
+  },
+  modalHeader: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  modalHeaderText: {
+    fontSize: 12,
+    fontFamily: retroFont,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+  },
+  optionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 12,
+    borderBottomWidth: 1,
+  },
+  optionButtonText: {
+    fontSize: 14,
+    fontFamily: retroFont,
+    fontWeight: '600',
+  },
+  cancelButton: {
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 11,
+    fontFamily: retroFont,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+  },
+});
 
 export default CategoryItem;

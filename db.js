@@ -44,12 +44,20 @@ const upsertImage = async (categoryId, uri) => {
   }
   const currentDb = await getDb();
   try {
-    const result = await currentDb.runAsync(
-      'INSERT OR REPLACE INTO category_images (categoryId, uri) VALUES (?, ?);',
-      [categoryId, uri]
+    // Asegurar que categoryId sea un string
+    const categoryIdStr = String(categoryId);
+    const uriStr = String(uri);
+
+    const statement = await currentDb.prepareAsync(
+      'INSERT OR REPLACE INTO category_images (categoryId, uri) VALUES ($categoryId, $uri)'
     );
-    console.log(`Imagen insertada/actualizada para categoryId ${categoryId}. Cambios: ${result.changes}, ID de fila: ${result.lastInsertRowId}`);
-    return result;
+    try {
+      const result = await statement.executeAsync({ $categoryId: categoryIdStr, $uri: uriStr });
+      console.log(`Imagen insertada/actualizada para categoryId ${categoryIdStr}. Cambios: ${result.changes}`);
+      return result;
+    } finally {
+      await statement.finalizeAsync();
+    }
   } catch (error) {
     console.error(`Error en upsertImage para categoryId ${categoryId}:`, error);
     throw error;
@@ -63,11 +71,19 @@ const fetchImage = async (categoryId) => {
   }
   const currentDb = await getDb();
   try {
-    const imageRecord = await currentDb.getFirstAsync(
-      'SELECT uri FROM category_images WHERE categoryId = ?;',
-      [categoryId]
+    // Asegurar que categoryId sea un string
+    const categoryIdStr = String(categoryId);
+
+    const statement = await currentDb.prepareAsync(
+      'SELECT uri FROM category_images WHERE categoryId = $categoryId'
     );
-    return imageRecord || null;
+    try {
+      const result = await statement.executeAsync({ $categoryId: categoryIdStr });
+      const row = await result.getFirstAsync();
+      return row || null;
+    } finally {
+      await statement.finalizeAsync();
+    }
   } catch (error) {
     console.error(`Error en fetchImage para categoryId ${categoryId}:`, error);
     throw error;
@@ -81,12 +97,19 @@ const deleteImage = async (categoryId) => {
   }
   const currentDb = await getDb();
   try {
-    const result = await currentDb.runAsync(
-      'DELETE FROM category_images WHERE categoryId = ?;',
-      [categoryId]
+    // Asegurar que categoryId sea un string
+    const categoryIdStr = String(categoryId);
+
+    const statement = await currentDb.prepareAsync(
+      'DELETE FROM category_images WHERE categoryId = $categoryId'
     );
-    console.log(`Imagen eliminada para categoryId ${categoryId}. Cambios: ${result.changes}`);
-    return result;
+    try {
+      const result = await statement.executeAsync({ $categoryId: categoryIdStr });
+      console.log(`Imagen eliminada para categoryId ${categoryIdStr}. Cambios: ${result.changes}`);
+      return result;
+    } finally {
+      await statement.finalizeAsync();
+    }
   } catch (error) {
     console.error(`Error en deleteImage para categoryId ${categoryId}:`, error);
     throw error;
@@ -94,8 +117,8 @@ const deleteImage = async (categoryId) => {
 };
 
 const fetchCategoryByNameLocal = async (name, userId) => {
-    console.warn("fetchCategoryByNameLocal (SQLite) es un placeholder.");
-    return null;
+  console.warn("fetchCategoryByNameLocal (SQLite) es un placeholder.");
+  return null;
 };
 
 export {

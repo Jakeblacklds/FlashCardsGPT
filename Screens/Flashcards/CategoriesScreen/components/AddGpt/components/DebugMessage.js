@@ -1,21 +1,21 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { BlurView } from 'expo-blur';
 import styles from '../AddGpt.styles';
-import { Dimensions } from 'react-native';
-
-const { width } = Dimensions.get('window');
 
 export const DebugMessage = ({ message, darkModeEnabled }) => {
   if (!message) return null;
 
   return (
-    <View style={[
-      styles.debugContainer,
-      darkModeEnabled ? { backgroundColor: '#2d2d2d' } : { backgroundColor: 'rgba(255,255,255,0.7)' }
-    ]}>
+    <View style={styles.debugContainer}>
+      <BlurView
+        style={StyleSheet.absoluteFill}
+        tint={darkModeEnabled ? 'dark' : 'light'}
+        intensity={90}
+      />
       <Text style={[
         styles.debugText,
-        darkModeEnabled ? { color: '#f0f0f0' } : { color: '#333' }
+        darkModeEnabled ? { color: '#CBD5E1' } : { color: '#475569' }
       ]}>
         {message}
       </Text>
